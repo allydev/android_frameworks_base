@@ -315,6 +315,11 @@ public class StkService extends Handler implements AppInterface {
         }
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
 
+        Input cmdInput = null;
+        if (mCurrntCmd != null) {
+            cmdInput = mCurrntCmd.geInput();
+        }
+
         // command details
         int tag = ComprehensionTlvTag.COMMAND_DETAILS.value();
         if (cmdDet.compRequired) {
@@ -348,6 +353,20 @@ public class StkService extends Handler implements AppInterface {
         // Fill optional data for each corresponding command
         if (resp != null) {
             resp.format(buf);
+        } else {
+            //ETSI TS 102 384,27.22.4.2.8.4.2.
+            //If it is a response for GET_INKEY command and the response timeout has
+            //occured, then add DURATION TLV for variable timeout case.
+            if ((cmdDet.typeOfCommand == AppInterface.CommandType.GET_INKEY.value()) &&
+                    (resultCode.value() == ResultCode.NO_RESPONSE_FROM_USER.value())) {
+                if (cmdInput != null && cmdInput.duration != null) {
+                    tag = 0x80 | ComprehensionTlvTag.DURATION.value();
+                    buf.write(tag);
+                    buf.write(0x02); // length
+                    buf.write(cmdInput.duration.timeUnit.SECOND.value());// Time Unit,Seconds
+                    buf.write(cmdInput.duration.timeInterval); // Time Duration
+                }
+            }
         }
 
         byte[] rawData = buf.toByteArray();
