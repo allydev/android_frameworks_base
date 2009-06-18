@@ -377,6 +377,7 @@ public class MimeTypeMap {
             sMimeTypeMap.loadEntry("audio/mpeg", "mpega");
             sMimeTypeMap.loadEntry("audio/mpeg", "mp2");
             sMimeTypeMap.loadEntry("audio/mpeg", "mp3");
+            sMimeTypeMap.loadEntry("audio/qcp", "qcp");
             sMimeTypeMap.loadEntry("audio/mpeg", "m4a");
             sMimeTypeMap.loadEntry("audio/mpegurl", "m3u");
             sMimeTypeMap.loadEntry("audio/prs.sid", "sid");

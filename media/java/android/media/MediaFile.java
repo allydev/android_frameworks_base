@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +46,8 @@ public class MediaFile {
     public static final int FILE_TYPE_AWB     = 5;
     public static final int FILE_TYPE_WMA     = 6;
     public static final int FILE_TYPE_OGG     = 7;
-    public static final int FILE_TYPE_AAC     = 8;
+    public static final int FILE_TYPE_QCP     = 8;
+    public static final int FILE_TYPE_AAC     = 9;
     private static final int FIRST_AUDIO_FILE_TYPE = FILE_TYPE_MP3;
     private static final int LAST_AUDIO_FILE_TYPE = FILE_TYPE_AAC;
 
@@ -131,6 +133,7 @@ public class MediaFile {
         if (isWMAEnabled()) {
             addFileType("WMA", FILE_TYPE_WMA, "audio/x-ms-wma");
         }
+        addFileType("QCP", FILE_TYPE_QCP, "audio/qcp");
         addFileType("OGG", FILE_TYPE_OGG, "application/ogg");
         addFileType("OGA", FILE_TYPE_OGG, "application/ogg");
         addFileType("AAC", FILE_TYPE_AAC, "audio/aac");
