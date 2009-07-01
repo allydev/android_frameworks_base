@@ -19,9 +19,9 @@
 #define ANDROID_BLUETOOTH_COMMON_H
 
 // Set to 0 to enable verbose, debug, and/or info bluetooth logging
-#define LOG_NDEBUG 1
-#define LOG_NDDEBUG 1
-#define LOG_NIDEBUG 1
+//#define LOG_NDEBUG 0
+#define LOG_NDDEBUG 0
+#define LOG_NIDEBUG 0
 
 #include "jni.h"
 #include "utils/Log.h"
@@ -45,6 +45,41 @@ namespace android {
 
 #define ANDROID_DBUS_AGENT_BASE_PATH "/android/bluetooth"
 #define ANDROID_PASSKEY_AGENT_PATH   ANDROID_DBUS_AGENT_BASE_PATH"/agent"
+
+#ifdef USE_BM3_BLUETOOTH
+/*
+ * BM3 HS/HF DBUS API
+ */
+#define BM3_DBUS_HSHF_SVC "com.qualcomm.hshf"
+#define BM3_DBUS_HSHF_PATH "/com/qualcomm/hshf"
+#define BM3_DBUS_HSHF_IFC "com.qualcomm.HsHf"
+#define BM3_DBUS_HSHF_PROFILE_PATH BM3_DBUS_HSHF_PATH "/handsfreeAg"
+#define BM3_DBUS_HSHF_HFAG_PROFILE_PATH BM3_DBUS_HSHF_PATH "/handsfreeAg"
+#define BM3_DBUS_HSHF_HSAG_PROFILE_PATH BM3_DBUS_HSHF_PATH "/headsetAg"
+#define BM3_DBUS_HSHF_PROFILE_IFC "com.qualcomm.HsHfProfile"
+#define BM3_DBUS_HSHF_SESSION_IFC "com.qualcomm.HsHfSession"
+
+#define BM3_DBUS_HSHF_REGISTER "RegisterProfile"
+#define BM3_DBUS_HSHF_DEREGISTER "DeregisterProfile"
+
+#define BM3_DBUS_HSHF_PROFILE_ACC_INCOMING "AcceptIncoming"
+#define BM3_DBUS_HSHF_PROFILE_REQ_OUTGOING "RequestOutgoing"
+#define BM3_DBUS_HSHF_PROFILE_CONNECT_REQ "SessionConnectRequest"
+#define BM3_DBUS_HSHF_PROFILE_CONNECT_FAIL "SessionConnectFailed"
+#define BM3_DBUS_HSHF_PROFILE_CONNECT_COMP "SessionConnectComplete"
+#define BM3_DBUS_HSHF_PROFILE_CONNECT_CLOSED "SessionClosed"
+
+#define BM3_DBUS_HSHF_SESSION_GET_PROPS "GetProperties"
+#define BM3_DBUS_HSHF_SESSION_SEND_DATA "SendData"
+#define BM3_DBUS_HSHF_SESSION_RECEIVE_DATA "ReceiveData"
+#define BM3_DBUS_HSHF_SESSION_REQ_VOICE_CONNECT "RequestVoiceConnect"
+#define BM3_DBUS_HSHF_SESSION_ACC_VOICE_CONNECT "AcceptVoiceConnect"
+#define BM3_DBUS_HSHF_SESSION_DISCONNECT_VOICE "DisconnectVoice"
+#define BM3_DBUS_HSHF_SESSION_DISCONNECT_SESSION "DisconnectSession"
+#define BM3_DBUS_HSHF_SESSION_VOICE_CONNECT_REQ "VoiceConnectionRequested"
+#define BM3_DBUS_HSHF_SESSION_VOICE_CONNECT_FAIL "VoiceConnectFailed"
+#define BM3_DBUS_HSHF_SESSION_VOICE_CONNECT_CLOSED "VoiceConnectionClosed"
+#endif /* USE_BM3_BLUETOOTH */
 
 // It would be nicer to retrieve this from bluez using GetDefaultAdapter,
 // but this is only possible when the adapter is up (and hcid is running).
@@ -153,6 +188,17 @@ DBusMessage * dbus_func_args_error(JNIEnv *env,
                                    const char *func,
                                    int first_arg_type,
                                    ...);
+
+DBusMessage * dbus_func_args_timeout_error(JNIEnv *env,
+                                           DBusConnection *conn,
+                                           int timeout_ms,
+                                           DBusError *err,
+                                           const char *dest,
+                                           const char *path,
+                                           const char *ifc,
+                                           const char *func,
+                                           int first_arg_type,
+                                           ...);
 
 DBusMessage * dbus_func_args_timeout(JNIEnv *env,
                                      DBusConnection *conn,

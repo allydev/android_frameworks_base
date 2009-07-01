@@ -25,6 +25,7 @@ LOCAL_SRC_FILES:= \
 	ActivityManager.cpp \
 	AndroidRuntime.cpp \
 	CursorWindow.cpp \
+	HeadsetHandsfreeEventLoop.cpp \
 	Time.cpp \
 	com_google_android_gles_jni_EGLImpl.cpp \
 	com_google_android_gles_jni_GLImpl.cpp.arm \

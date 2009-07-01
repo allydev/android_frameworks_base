@@ -1,5 +1,6 @@
 /*
 ** Copyright 2008, The Android Open Source Project
+** Copyright (c) 2009, Code Aurora Forum. All rights reserved.
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -17,9 +18,13 @@
 #define LOG_TAG "bluetooth_ScoSocket.cpp"
 
 #include "android_bluetooth_common.h"
+#ifdef USE_BM3_BLUETOOTH
+#include "HeadsetHandsfreeEventLoop.h"
+#endif /* USE_BM3_BLUETOOTH */
 #include "android_runtime/AndroidRuntime.h"
 #include "JNIHelp.h"
 #include "jni.h"
+
 #include "utils/Log.h"
 #include "utils/misc.h"
 
@@ -71,6 +76,15 @@ static int connect_work(const char *address);
 static int accept_work(int signal_sk);
 static void wait_for_close(int sk, int signal_sk);
 static void closeNative(JNIEnv *env, jobject object);
+
+#ifdef USE_BM3_BLUETOOTH
+// Control socket for currently connected ScoSocket (if any)
+static int g_connected_signal_sk = -1;
+//sem_t g_incoming_sco_connection_sem;
+pthread_mutex_t g_incoming_sco_connection_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t g_incoming_sco_connection_cond = PTHREAD_COND_INITIALIZER;
+int g_incoming_sco_connection_success = 0;
+#endif /* USE_BM3_BLUETOOTH */
 
 /* shared native data - protected by mutex */
 typedef struct {
@@ -124,6 +138,11 @@ static jboolean initNative(JNIEnv* env, jobject object) {
     nat->object = NULL;
     nat->thread_data = NULL;
 
+#ifdef USE_BM3_BLUETOOTH
+//    sem_init(&g_incoming_sco_connection_sem, 0, 0);
+    g_connected_signal_sk = -1;
+#endif
+
 #endif
     return JNI_TRUE;
 }
@@ -132,9 +151,9 @@ static void destroyNative(JNIEnv* env, jobject object) {
     LOGV(__FUNCTION__);
 #ifdef HAVE_BLUETOOTH
     native_data_t *nat = get_native_data(env, object);
-    
+
     closeNative(env, object);
-    
+
     pthread_mutex_lock(&nat->mutex);
     if (nat->thread_data != NULL) {
         nat->thread_data->nat = NULL;
@@ -168,6 +187,9 @@ static jboolean acceptNative(JNIEnv *env, jobject object) {
     }
     nat->signal_sk = signal_sks[0];
     nat->object = env->NewGlobalRef(object);
+#ifdef USE_BM3_BLUETOOTH
+    g_connected_signal_sk = signal_sks[0];
+#endif /* USE_BM3_BLUETOOTH */
 
     data = (thread_data_t *)calloc(1, sizeof(thread_data_t));
     if (data == NULL) {
@@ -215,6 +237,9 @@ static jboolean connectNative(JNIEnv *env, jobject object, jstring address) {
     }
     nat->signal_sk = signal_sks[0];
     nat->object = env->NewGlobalRef(object);
+#ifdef USE_BM3_BLUETOOTH
+    g_connected_signal_sk = signal_sks[0];
+#endif /* USE_BM3_BLUETOOTH */
 
     data = (thread_data_t *)calloc(1, sizeof(thread_data_t));
     if (data == NULL) {
@@ -252,6 +277,9 @@ static void closeNative(JNIEnv *env, jobject object) {
     nat->signal_sk = -1;
     env->DeleteGlobalRef(nat->object);
     nat->object = NULL;
+#ifdef USE_BM3_BLUETOOTH
+    g_connected_signal_sk = -1;
+#endif /* USE_BM3_BLUETOOTH */
     pthread_mutex_unlock(&nat->mutex);
 
     if (signal_sk >= 0) {
@@ -315,6 +343,14 @@ static void *work_thread(void *arg) {
     wait_for_close(sk, data->signal_sk);
     LOGV("wait_for_close() returned");
 
+#ifdef USE_BM3_BLUETOOTH
+    /* if we're shutting the entire connection down, suppress the SCO signal. */
+    if (NULL == g_session_path) {
+        LOGV("%s: suppressing onClosed() during SLC disconnect.", __FUNCTION__);
+        goto done;
+    }
+#endif /* USE_BM3_BLUETOOTH */
+
     /* callback with close result */
     if (data->nat == NULL) {
         LOGV("%s: object destroyed!", __FUNCTION__);
@@ -330,7 +366,13 @@ static void *work_thread(void *arg) {
 
 done:
     if (sk >= 0) {
+#ifdef USE_BM3_BLUETOOTH
+        if (disconnectVoice() != 0) {
+            LOGE("Error closing BM3 SCO connection!");
+        }
+#else
         close(sk);
+#endif /* USE_BM3_BLUETOOTH */
         LOGV("SCO OBJECT %p %d CLOSED --- (%s)", data->nat->object, sk, data->is_accept ? "in" : "out");
     }
     if (data->signal_sk >= 0) {
@@ -357,6 +399,30 @@ done:
 
 static int accept_work(int signal_sk) {
     LOGV(__FUNCTION__);
+#ifdef USE_BM3_BLUETOOTH
+    LOGI("SCO socket awaiting connection (incoming)");
+
+    /* Block on semaphore (released by VoiceConnectionRequested processing) */
+    //sem_wait(&g_incoming_sco_connection_sem);
+    if (0 == pthread_mutex_lock(&g_incoming_sco_connection_mutex)) {
+        while (g_incoming_sco_connection_success == 0) {
+            if (0 != pthread_cond_wait(&g_incoming_sco_connection_cond, &g_incoming_sco_connection_mutex)) {
+                LOGE("Error waiting for incoming SCO socket connection!");
+                // TODO: BAD.
+            }
+        }
+
+        /* Reset the connection SCO success value... */
+        g_incoming_sco_connection_success = 0;
+        pthread_mutex_unlock(&g_incoming_sco_connection_mutex);
+    } else {
+        LOGE("SCO connection mutex lock failure!");
+        return -1;
+    }
+
+    LOGI("SCO socket received connection (incoming)!");
+    return 5; /* bogus, non-negative value */
+#else
     int sk;
     int nsk;
     int addr_sz;
@@ -424,10 +490,21 @@ error:
     close(sk);
 
     return -1;
+#endif /* USE_BM3_BLUETOOTH */
 }
 
 static int connect_work(const char *address) {
     LOGV(__FUNCTION__);
+
+#ifdef USE_BM3_BLUETOOTH
+    if (requestVoiceConnect("") == 0) {
+        LOGI("SCO socket connected (outgoing)");
+        return 5; /* bogus, non-negative value */
+    } else {
+        LOGE("Error connecting SCO socket (outgoing).");
+        return -1;
+    }
+#else
     struct sockaddr_sco addr;
     int sk = -1;
 
@@ -464,7 +541,20 @@ static int connect_work(const char *address) {
 error:
     if (sk >= 0) close(sk);
     return -1;
+#endif /* USE_BM3_BLUETOOTH */
 }
+
+#ifdef USE_BM3_BLUETOOTH
+void closeConnectedSco() {
+    if (g_connected_signal_sk >= 0) {
+        LOGV("%s: g_connected_signal_sk = %d", __FUNCTION__, g_connected_signal_sk);
+        unsigned char dummy;
+        write(g_connected_signal_sk, &dummy, sizeof(dummy));
+        close(g_connected_signal_sk);
+        g_connected_signal_sk = -1;
+    }
+}
+#endif /* USE_BM3_BLUETOOTH */
 
 static void wait_for_close(int sk, int signal_sk) {
     LOGV(__FUNCTION__);
