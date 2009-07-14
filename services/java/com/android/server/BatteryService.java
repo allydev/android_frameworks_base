@@ -372,6 +372,7 @@ class BatteryService extends Binder {
             byte[] buffer = new byte[DUMP_MAX_LENGTH];
             File dumpFile = null;
             FileOutputStream dumpStream = null;
+            FileInputStream fileInputStream = null;
             try {
                 // dump the service to a file
                 dumpFile = new File(DUMPSYS_DATA_PATH + BATTERY_STATS_SERVICE_NAME + ".dump");
@@ -382,7 +383,7 @@ class BatteryService extends Binder {
                 // read dumped file above into buffer truncated to DUMP_MAX_LENGTH
                 // and insert into events table.
                 int length = (int) Math.min(dumpFile.length(), DUMP_MAX_LENGTH);
-                FileInputStream fileInputStream = new FileInputStream(dumpFile);
+                fileInputStream = new FileInputStream(dumpFile);
                 int nread = fileInputStream.read(buffer, 0, length);
                 if (nread > 0) {
                     Checkin.logEvent(mContext.getContentResolver(), 
@@ -404,6 +405,13 @@ class BatteryService extends Binder {
                         dumpStream.close();
                     } catch (IOException e) {
                         Log.e(TAG, "failed to close dumpsys output stream");
+                    }
+                }
+                if (fileInputStream != null) {
+                    try {
+                        fileInputStream.close();
+                    } catch (IOException e) {
+                        Log.e(TAG, "failed to close dumpsys input stream");
                     }
                 }
                 if (dumpFile != null && !dumpFile.delete()) {
