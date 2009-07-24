@@ -72,7 +72,8 @@ enum output_format {
     OUTPUT_FORMAT_AMR_WB = 4,
     OUTPUT_FORMAT_AAC_ADIF = 5,
     OUTPUT_FORMAT_AAC_ADTS = 6,
-
+    OUTPUT_FOMRAT_QCP = 7, // QCP file format
+    OUTPUT_FORMAT_THREE_GPP2 = 8, /*3GPP2*/
     OUTPUT_FORMAT_LIST_END // must be last - used to validate format type
 };
 

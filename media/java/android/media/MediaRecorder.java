@@ -188,6 +188,10 @@ public class MediaRecorder
         public static final int AAC_ADIF = 5;
         /** @hide AAC ADTS file format */
         public static final int AAC_ADTS = 6;
+        /** QCP file format */
+        public static final int QCP = 7;
+        /** 3GPP2 media file format*/
+        public static final int THREE_GPP2 = 8;
     };
 
     /**
