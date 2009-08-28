@@ -454,7 +454,6 @@ public final class CdmaDataConnectionTracker extends DataConnectionTracker {
         rxPkts = -1;
         sentSinceLastRecv = 0;
         netStatPollPeriod = POLL_NETSTAT_MILLIS;
-        mNoRecvPollCount = 0;
     }
 
     protected void startNetStatPoll() {
@@ -524,33 +523,6 @@ public final class CdmaDataConnectionTracker extends DataConnectionTracker {
                     activity = newActivity;
                     phone.notifyDataActivity();
                 }
-            }
-
-            if (sentSinceLastRecv >= NUMBER_SENT_PACKETS_OF_HANG) {
-                // Packets sent without ack exceeded threshold.
-
-                if (mNoRecvPollCount == 0) {
-                    EventLog.writeEvent(
-                            EventLogTags.PDP_RADIO_RESET_COUNTDOWN_TRIGGERED,
-                            sentSinceLastRecv);
-                }
-
-                if (mNoRecvPollCount < NO_RECV_POLL_LIMIT) {
-                    mNoRecvPollCount++;
-                    // Slow down the poll interval to let things happen
-                    netStatPollPeriod = POLL_NETSTAT_SLOW_MILLIS;
-                } else {
-                    if (DBG) log("Sent " + String.valueOf(sentSinceLastRecv) +
-                                        " pkts since last received");
-                    // We've exceeded the threshold.  Restart the radio.
-                    netStatPollEnabled = false;
-                    stopNetStatPoll();
-                    restartRadio();
-                    EventLog.writeEvent(EventLogTags.PDP_RADIO_RESET, NO_RECV_POLL_LIMIT);
-                }
-            } else {
-                mNoRecvPollCount = 0;
-                netStatPollPeriod = POLL_NETSTAT_MILLIS;
             }
 
             if (netStatPollEnabled) {

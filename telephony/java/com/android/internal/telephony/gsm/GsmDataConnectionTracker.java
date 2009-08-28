@@ -90,7 +90,6 @@ public final class GsmDataConnectionTracker extends DataConnectionTracker {
     private boolean mReregisterOnReconnectFailure = false;
     private ContentResolver mResolver;
 
-    private boolean mPingTestActive = false;
     // Count of PDP reset attempts; reset when we see incoming,
     // call reRegisterNetwork, or pingTest succeeds.
     private int mPdpResetCount = 0;
@@ -777,7 +776,6 @@ public final class GsmDataConnectionTracker extends DataConnectionTracker {
         rxPkts = -1;
         sentSinceLastRecv = 0;
         netStatPollPeriod = POLL_NETSTAT_MILLIS;
-        mNoRecvPollCount = 0;
     }
 
     private void doRecovery() {
@@ -800,7 +798,7 @@ public final class GsmDataConnectionTracker extends DataConnectionTracker {
     }
 
     protected void startNetStatPoll() {
-        if (state == State.CONNECTED && mPingTestActive == false && netStatPollEnabled == false) {
+        if (state == State.CONNECTED && netStatPollEnabled == false) {
             Log.d(LOG_TAG, "[DataConnection] Start poll NetStat");
             resetPollStats();
             netStatPollEnabled = true;
@@ -879,56 +877,13 @@ public final class GsmDataConnectionTracker extends DataConnectionTracker {
                 }
             }
 
-            int watchdogTrigger = Settings.Secure.getInt(mResolver,
-                    Settings.Secure.PDP_WATCHDOG_TRIGGER_PACKET_COUNT,
-                    NUMBER_SENT_PACKETS_OF_HANG);
-
-            if (sentSinceLastRecv >= watchdogTrigger) {
-                // we already have NUMBER_SENT_PACKETS sent without ack
-                if (mNoRecvPollCount == 0) {
-                    EventLog.writeEvent(EventLogTags.PDP_RADIO_RESET_COUNTDOWN_TRIGGERED,
-                            sentSinceLastRecv);
-                }
-
-                int noRecvPollLimit = Settings.Secure.getInt(mResolver,
-                        Settings.Secure.PDP_WATCHDOG_ERROR_POLL_COUNT, NO_RECV_POLL_LIMIT);
-
-                if (mNoRecvPollCount < noRecvPollLimit) {
-                    // It's possible the PDP context went down and we weren't notified.
-                    // Start polling the context list in an attempt to recover.
-                    if (DBG) log("no DATAIN in a while; polling PDP");
-                    phone.mCM.getDataCallList(obtainMessage(EVENT_GET_PDP_LIST_COMPLETE));
-
-                    mNoRecvPollCount++;
-
-                    // Slow down the poll interval to let things happen
-                    netStatPollPeriod = Settings.Secure.getInt(mResolver,
-                            Settings.Secure.PDP_WATCHDOG_ERROR_POLL_INTERVAL_MS,
-                            POLL_NETSTAT_SLOW_MILLIS);
-                } else {
-                    if (DBG) log("Sent " + String.valueOf(sentSinceLastRecv) +
-                                        " pkts since last received");
-                    // We've exceeded the threshold.  Run ping test as a final check;
-                    // it will proceed with recovery if ping fails.
-                    stopNetStatPoll();
-                    Thread pingTest = new Thread() {
-                        public void run() {
-                            runPingTest();
-                        }
-                    };
-                    mPingTestActive = true;
-                    pingTest.start();
-                }
+            if (mIsScreenOn) {
+                netStatPollPeriod = Settings.Secure.getInt(mResolver,
+                        Settings.Secure.PDP_WATCHDOG_POLL_INTERVAL_MS, POLL_NETSTAT_MILLIS);
             } else {
-                mNoRecvPollCount = 0;
-                if (mIsScreenOn) {
-                    netStatPollPeriod = Settings.Secure.getInt(mResolver,
-                            Settings.Secure.PDP_WATCHDOG_POLL_INTERVAL_MS, POLL_NETSTAT_MILLIS);
-                } else {
-                    netStatPollPeriod = Settings.Secure.getInt(mResolver,
-                            Settings.Secure.PDP_WATCHDOG_LONG_POLL_INTERVAL_MS,
-                            POLL_NETSTAT_SCREEN_OFF_MILLIS);
-                }
+                netStatPollPeriod = Settings.Secure.getInt(mResolver,
+                        Settings.Secure.PDP_WATCHDOG_LONG_POLL_INTERVAL_MS,
+                        POLL_NETSTAT_SCREEN_OFF_MILLIS);
             }
 
             if (netStatPollEnabled) {
@@ -936,37 +891,6 @@ public final class GsmDataConnectionTracker extends DataConnectionTracker {
             }
         }
     };
-
-    private void runPingTest () {
-        int status = -1;
-        try {
-            String address = Settings.Secure.getString(mResolver,
-                    Settings.Secure.PDP_WATCHDOG_PING_ADDRESS);
-            int deadline = Settings.Secure.getInt(mResolver,
-                        Settings.Secure.PDP_WATCHDOG_PING_DEADLINE, DEFAULT_PING_DEADLINE);
-            if (DBG) log("pinging " + address + " for " + deadline + "s");
-            if (address != null && !NULL_IP.equals(address)) {
-                Process p = Runtime.getRuntime()
-                                .exec("ping -c 1 -i 1 -w "+ deadline + " " + address);
-                status = p.waitFor();
-            }
-        } catch (IOException e) {
-            Log.w(LOG_TAG, "ping failed: IOException");
-        } catch (Exception e) {
-            Log.w(LOG_TAG, "exception trying to ping");
-        }
-
-        if (status == 0) {
-            // ping succeeded.  False alarm.  Reset netStatPoll.
-            // ("-1" for this event indicates a false alarm)
-            EventLog.writeEvent(EventLogTags.PDP_RADIO_RESET, -1);
-            mPdpResetCount = 0;
-            sendMessage(obtainMessage(EVENT_START_NETSTAT_POLL));
-        } else {
-            // ping failed.  Proceed with recovery.
-            sendMessage(obtainMessage(EVENT_START_RECOVERY));
-        }
-    }
 
     /**
      * Returns true if the last fail cause is something that
@@ -1473,12 +1397,10 @@ public final class GsmDataConnectionTracker extends DataConnectionTracker {
                 break;
 
             case EVENT_START_NETSTAT_POLL:
-                mPingTestActive = false;
                 startNetStatPoll();
                 break;
 
             case EVENT_START_RECOVERY:
-                mPingTestActive = false;
                 doRecovery();
                 break;
 
