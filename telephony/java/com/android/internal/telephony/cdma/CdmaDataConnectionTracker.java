@@ -331,8 +331,6 @@ public final class CdmaDataConnectionTracker extends DataConnectionTracker {
                 && (psState == ServiceState.STATE_IN_SERVICE)
                 && ((phone.mCM.getRadioState() == CommandsInterface.RadioState.NV_READY) ||
                         mCdmaPhone.mRuimRecords.getRecordsLoaded())
-                && (mCdmaPhone.mSST.isConcurrentVoiceAndData() ||
-                        phone.getState() == Phone.State.IDLE )
                 && isDataAllowed()
                 && desiredPowerState
                 && !mPendingRestartRadio
