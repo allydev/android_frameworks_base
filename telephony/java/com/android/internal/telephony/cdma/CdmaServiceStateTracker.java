@@ -1511,7 +1511,6 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
      * @param time time set by network
      */
     private void setAndBroadcastNetworkSetTime(long time) {
-        SystemClock.setCurrentTimeMillis(time);
         Intent intent = new Intent(TelephonyIntents.ACTION_NETWORK_SET_TIME);
         intent.putExtra("time", time);
         phone.getContext().sendStickyBroadcast(intent);
