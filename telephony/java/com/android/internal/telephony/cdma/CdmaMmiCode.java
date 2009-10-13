@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -162,7 +163,7 @@ public final class CdmaMmiCode  extends Handler implements MmiCode {
         }
 
         state = State.CANCELLED;
-        phone.onMMIDone (this);
+        phone.onMmiDone (this);
     }
 
     public boolean isCancelable() {
@@ -218,7 +219,7 @@ public final class CdmaMmiCode  extends Handler implements MmiCode {
         } catch (RuntimeException exc) {
             state = State.FAILED;
             message = context.getText(com.android.internal.R.string.mmiError);
-            phone.onMMIDone(this);
+            phone.onMmiDone(this);
         }
     }
 
@@ -228,7 +229,7 @@ public final class CdmaMmiCode  extends Handler implements MmiCode {
         sb.append("\n");
         sb.append(context.getText(res));
         message = sb;
-        phone.onMMIDone(this);
+        phone.onMmiDone(this);
     }
 
     public void
@@ -290,7 +291,7 @@ public final class CdmaMmiCode  extends Handler implements MmiCode {
         }
 
         message = sb;
-        phone.onMMIDone(this);
+        phone.onMmiDone(this);
     }
 
 }

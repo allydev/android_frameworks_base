@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +52,8 @@ import com.android.internal.telephony.CommandsInterface;
 import com.android.internal.telephony.Connection;
 import com.android.internal.telephony.DataConnection;
 import com.android.internal.telephony.MccTable;
+import com.android.internal.telephony.cdma.CdmaCall;
+import com.android.internal.telephony.cdma.CdmaMmiCode;
 import com.android.internal.telephony.IccCard;
 import com.android.internal.telephony.IccException;
 import com.android.internal.telephony.IccFileHandler;
@@ -384,8 +387,9 @@ public class CDMAPhone extends PhoneBase {
         CdmaCall.State backgroundCallState = getBackgroundCall().getState();
         CdmaCall.State ringingCallState = getRingingCall().getState();
 
-        return (foregroundCallState.isAlive() || backgroundCallState.isAlive() || ringingCallState
-                .isAlive());
+       return (foregroundCallState.isAlive() ||
+                backgroundCallState.isAlive() ||
+                ringingCallState.isAlive());
     }
 
     public void
@@ -515,20 +519,20 @@ public class CDMAPhone extends PhoneBase {
     }
 
     /**
-     * Removes the given MMI from the pending list and notifies registrants that
-     * it is complete.
-     *
+     * Removes the given MMI from the pending list and notifies
+     * registrants that it is complete.
      * @param mmi MMI that is done
      */
-    void onMMIDone(CdmaMmiCode mmi) {
-        /*
-         * Only notify complete if it's on the pending list. Otherwise, it's
-         * already been handled (eg, previously canceled).
+    void onMmiDone(CdmaMmiCode mmi) {
+        /* Only notify complete if it's on the pending list.
+         * Otherwise, it's already been handled (eg, previously canceled).
          */
         if (mPendingMmis.remove(mmi)) {
-            mMmiCompleteRegistrants.notifyRegistrants(new AsyncResult(null, mmi, null));
+            mMmiCompleteRegistrants.notifyRegistrants(
+                new AsyncResult(null, mmi, null));
         }
     }
+
 
     public void setLine1Number(String alphaTag, String number, Message onComplete) {
         Log.e(LOG_TAG, "setLine1Number: not possible in CDMA");
