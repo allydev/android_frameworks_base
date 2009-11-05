@@ -180,6 +180,10 @@ LOCAL_C_INCLUDES += \
 	system/bluetooth/bluez-clean-headers
 LOCAL_CFLAGS += -DHAVE_BLUETOOTH
 LOCAL_SHARED_LIBRARIES += libbluedroid libdbus
+
+ifeq ($(BOARD_USE_BM3_FULLSTACK),true)
+	LOCAL_CFLAGS += -DUSE_BM3_BLUETOOTH
+endif
 endif
 
 ifneq ($(TARGET_SIMULATOR),true)
