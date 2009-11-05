@@ -557,6 +557,38 @@ public interface CommandsInterface {
      void unregisterForResendIncallMute(Handler h);
 
     /**
+     * Sets the handler for Event Notifications for CDMA Forward Burst DTMF.
+     *
+     * @param h Handler for notification message.
+     * @param what User-defined message code.
+     * @param obj User object.
+     */
+    void registerForCdmaFwdBurstDtmf(Handler h, int what, Object obj);
+    void unregisterForCdmaFwdBurstDtmf(Handler h);
+
+    /**
+     * Sets the handler for Event Notifications for CDMA Forward Continuous DTMF
+     * Start.
+     *
+     * @param h Handler for notification message.
+     * @param what User-defined message code.
+     * @param obj User object.
+     */
+    void registerForCdmaFwdContDtmfStart(Handler h, int what, Object obj);
+    void unregisterForCdmaFwdContDtmfStart(Handler h);
+
+    /**
+     * Sets the handler for Event Notifications for CDMA Forward Continuous DTMF
+     * Stop.
+     *
+     * @param h Handler for notification message.
+     * @param what User-defined message code.
+     * @param obj User object.
+     */
+    void registerForCdmaFwdContDtmfStop(Handler h, int what, Object obj);
+    void unregisterForCdmaFwdContDtmfStop(Handler h);
+
+    /**
      * Supply the ICC PIN to the ICC card
      *
      *  returned message

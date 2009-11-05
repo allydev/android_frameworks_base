@@ -581,6 +581,38 @@ public class PhoneProxy extends Handler implements Phone {
         mActivePhone.unSetOnUnsolOemHookExtApp(h);
     }
 
+
+    public void registerForCdmaFwdBurstDtmf(Handler h, int what, Object obj) {
+        mActivePhone.registerForCdmaFwdBurstDtmf(h, what, obj);
+    }
+
+    public void unregisterForCdmaFwdBurstDtmf(Handler h) {
+        mActivePhone.unregisterForCdmaFwdBurstDtmf(h);
+    }
+
+    public void registerForCdmaFwdContDtmfStart(Handler h, int what, Object obj) {
+        mActivePhone.registerForCdmaFwdContDtmfStart(h, what, obj);
+    }
+
+    public void unregisterForCdmaFwdContDtmfStart(Handler h) {
+        mActivePhone.unregisterForCdmaFwdContDtmfStart(h);
+    }
+
+    public void registerForCdmaFwdContDtmfStop(Handler h, int what, Object obj) {
+        mActivePhone.registerForCdmaFwdContDtmfStop(h, what, obj);
+    }
+
+    public void unregisterForCdmaFwdContDtmfStop(Handler h) {
+        mActivePhone.unregisterForCdmaFwdContDtmfStop(h);
+    }
+
+    /**
+     * @deprecated
+     */
+    public void getPdpContextList(Message response) {
+        mActivePhone.getPdpContextList(response);
+    }
+
     public void getDataCallList(Message response) {
         mActivePhone.getDataCallList(response);
     }
