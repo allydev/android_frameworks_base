@@ -768,6 +768,8 @@ bool AudioSystem::isValidFormat(uint32_t format)
     case         HE_AAC_V1:
     case         HE_AAC_V2:
     case         VORBIS:
+    case         EVRC:
+    case         QCELP:
         return true;
     default:
         return false;
