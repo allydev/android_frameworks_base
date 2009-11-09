@@ -685,6 +685,14 @@ class ZygoteConnection {
          */
 
         if (parsedArgs.uid != 0) {
+            /*
+             * If the Process belong to AID_RADIO(1001) or AID_SYSTEM(1000)
+             * then add CAP_SYS_TIME (1<<25) Capability.
+             */
+            if(parsedArgs.uid == 1000 || parsedArgs.uid == 1001 ) {
+                parsedArgs.permittedCapabilities |= (1<<25);
+                parsedArgs.effectiveCapabilities |= (1<<25);
+            }
             try {
                 ZygoteInit.setCapabilities(parsedArgs.permittedCapabilities,
                         parsedArgs.effectiveCapabilities);
