@@ -1422,7 +1422,7 @@ public class CDMAPhone extends PhoneBase {
      */
     // TODO(Moto): move this method into PhoneBase, since it looks identical to
     // the one in GsmPhone
-    private boolean updateCurrentCarrierInProvider(String operatorNumeric) {
+    public boolean updateCurrentCarrierInProvider(String operatorNumeric) {
         if (!TextUtils.isEmpty(operatorNumeric)) {
             try {
                 Uri uri = Uri.withAppendedPath(Telephony.Carriers.CONTENT_URI, "current");
