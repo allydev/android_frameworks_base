@@ -23,6 +23,7 @@ import android.os.Message;
 import android.os.PowerManager;
 import android.os.Registrant;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.util.Config;
 import android.util.Log;
 import android.telephony.PhoneNumberUtils;
@@ -358,6 +359,18 @@ public class GsmConnection extends Connection {
 
             case CallFailCause.UNOBTAINABLE_NUMBER:
                 return DisconnectCause.UNOBTAINABLE_NUMBER;
+
+                // Display the following call fail cause only
+                // when Adapt feature is enabled.
+            case CallFailCause.IMSI_UNKNOWN_IN_VLR:
+                if (SystemProperties.getBoolean("persist.cust.tel.adapt", false)) {
+                    return DisconnectCause.IMSI_UNKNOWN_IN_VLR;
+                }
+
+            case CallFailCause.IMEI_NOT_ACCEPTED:
+                if (SystemProperties.getBoolean("persist.cust.tel.adapt", false)) {
+                    return DisconnectCause.IMEI_NOT_ACCEPTED;
+                }
 
             case CallFailCause.ERROR_UNSPECIFIED:
             case CallFailCause.NORMAL_CLEARING:
