@@ -47,4 +47,6 @@ public interface CallFailCause {
     static final int CALL_BARRED        = 240;
     static final int FDN_BLOCKED        = 241;
     static final int ERROR_UNSPECIFIED = 0xffff;
+    static final int IMSI_UNKNOWN_IN_VLR = 242;
+    static final int IMEI_NOT_ACCEPTED = 243;
 }
