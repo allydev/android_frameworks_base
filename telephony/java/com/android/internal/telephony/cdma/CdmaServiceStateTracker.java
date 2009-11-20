@@ -1061,6 +1061,11 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
                 }
             }
 
+            phone.updateCurrentCarrierInProvider(operatorNumeric);
+
+            // Updates MCC MNC device configuration information
+            MccTable.updateMccMncConfiguration(phone, operatorNumeric);
+
             phone.setSystemProperty(TelephonyProperties.PROPERTY_OPERATOR_ISROAMING,
                     ss.getRoaming() ? "true" : "false");
 
