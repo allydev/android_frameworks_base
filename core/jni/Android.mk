@@ -24,6 +24,7 @@ LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES -DEGL_EGLEXT_PROTOTYPES
 LOCAL_SRC_FILES:= \
 	ActivityManager.cpp \
 	AndroidRuntime.cpp \
+	BluetoothSocketEventLoop.cpp \
 	CursorWindow.cpp \
 	HeadsetHandsfreeEventLoop.cpp \
 	Time.cpp \

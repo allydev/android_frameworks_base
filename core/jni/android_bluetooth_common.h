@@ -79,6 +79,29 @@ namespace android {
 #define BM3_DBUS_HSHF_SESSION_VOICE_CONNECT_REQ "VoiceConnectionRequested"
 #define BM3_DBUS_HSHF_SESSION_VOICE_CONNECT_FAIL "VoiceConnectFailed"
 #define BM3_DBUS_HSHF_SESSION_VOICE_CONNECT_CLOSED "VoiceConnectionClosed"
+
+/*
+ * BM3 RFCOMM DBUS API
+ */
+#define BM3_DBUS_RFCOMM_SVC "com.qualcomm.rfcomm"
+#define BM3_DBUS_RFCOMM_PATH "/"
+
+#define BM3_DBUS_RFCOMM_MGR_IFC "com.qualcomm.rfcommManager"
+#define BM3_DBUS_RFCOMM_MGR_REGISTER "RegisterServer"
+#define BM3_DBUS_RFCOMM_MGR_CONNECT "Connect"
+
+#define BM3_DBUS_RFCOMM_SVR_IFC "com.qualcomm.rfcommServer"
+#define BM3_DBUS_RFCOMM_SVR_DEREGISTER "Deregister"
+#define BM3_DBUS_RFCOMM_SVR_ACCEPT "AcceptConnection"
+#define BM3_DBUS_RFCOMM_SVR_GET_PROPS "GetProperties"
+
+#define BM3_DBUS_RFCOMM_SESSION_IFC "com.qualcomm.rfcommSession"
+#define BM3_DBUS_RFCOMM_SESSION_DISCONNECT "Disconnect"
+#define BM3_DBUS_RFCOMM_SESSION_GET_PROPS "GetProperties"
+
+#define BM3_DBUS_RFCOMM_SRV_AGENT_IFC "com.qualcomm.rfcommServerAgent"
+#define BM3_DBUS_RFCOMM_SRV_AGENT_INCOMING "IncomingConnection"
+#define BM3_DBUS_RFCOMM_SRV_AGENT_RELEASE "Release"
 #endif /* USE_BM3_BLUETOOTH */
 
 // It would be nicer to retrieve this from bluez using GetDefaultAdapter,
@@ -144,6 +167,12 @@ struct _Properties {
     int type;
 };
 typedef struct _Properties Properties;
+
+typedef union {
+    char *str_val;
+    int int_val;
+    char **array_val;
+} property_value;
 
 dbus_bool_t dbus_func_args_async_valist(JNIEnv *env,
                                         DBusConnection *conn,
@@ -229,6 +258,10 @@ jobjectArray dbus_returns_array_of_strings(JNIEnv *env, DBusMessage *reply);
 jobjectArray dbus_returns_array_of_object_path(JNIEnv *env, DBusMessage *reply);
 jbyteArray dbus_returns_array_of_bytes(JNIEnv *env, DBusMessage *reply);
 
+bool dbus_append_variant_dict_entry(DBusMessageIter *array_iter, const char *key, int type, void *val);
+
+int get_property(DBusMessageIter iter, Properties *properties,
+                 int max_num_properties, int *prop_index, property_value *value, int *len);
 jobjectArray parse_properties(JNIEnv *env, DBusMessageIter *iter, Properties *properties,
                               const int max_num_properties);
 jobjectArray parse_property_change(JNIEnv *env, DBusMessage *msg,
