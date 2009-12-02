@@ -1250,7 +1250,7 @@ public class PhoneNumberUtils
         number = extractNetworkPortion(number);
 
         // retrieve the list of emergency numbers
-        String numbers = SystemProperties.get("ro.ril.ecclist");
+        String numbers = SystemProperties.get("persist.ril.ecclist");
 
         if (!TextUtils.isEmpty(numbers)) {
             // searches through the comma-separated list for a match,
