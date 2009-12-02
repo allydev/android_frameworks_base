@@ -34,9 +34,14 @@ public class CommandException extends RuntimeException {
         SIM_PIN2,
         SIM_PUK2,
         REQUEST_NOT_SUPPORTED,
+        REQUEST_CANCELLED,
         OP_NOT_ALLOWED_DURING_VOICE_CALL,
         OP_NOT_ALLOWED_BEFORE_REG_NW,
         SMS_FAIL_RETRY,
+        SIM_ABSENT,
+        SUBSCRIPTION_NOT_AVAILABLE,
+        MODE_NOT_SUPPORTED,
+        FDN_FAILURE,
     }
 
     public CommandException(Error e) {
@@ -62,12 +67,22 @@ public class CommandException extends RuntimeException {
                 return new CommandException(Error.SIM_PUK2);
             case RILConstants.REQUEST_NOT_SUPPORTED:
                 return new CommandException(Error.REQUEST_NOT_SUPPORTED);
+            case RILConstants.REQUEST_CANCELLED:
+                return new CommandException(Error.REQUEST_CANCELLED);
             case RILConstants.OP_NOT_ALLOWED_DURING_VOICE_CALL:
                 return new CommandException(Error.OP_NOT_ALLOWED_DURING_VOICE_CALL);
             case RILConstants.OP_NOT_ALLOWED_BEFORE_REG_NW:
                 return new CommandException(Error.OP_NOT_ALLOWED_BEFORE_REG_NW);
             case RILConstants.SMS_SEND_FAIL_RETRY:
                 return new CommandException(Error.SMS_FAIL_RETRY);
+            case RILConstants.SIM_ABSENT:
+                return new CommandException(Error.SIM_ABSENT);
+            case RILConstants.SUBSCRIPTION_NOT_AVAILABLE:
+                return new CommandException(Error.SUBSCRIPTION_NOT_AVAILABLE);
+            case RILConstants.MODE_NOT_SUPPORTED:
+                return new CommandException(Error.MODE_NOT_SUPPORTED);
+            case RILConstants.FDN_CHECK_FAILURE:
+                return new CommandException(Error.FDN_FAILURE);
             default:
                 Log.e("GSM", "Unrecognized RIL errno " + ril_errno);
                 return new CommandException(Error.INVALID_RESPONSE);
