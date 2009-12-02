@@ -972,6 +972,21 @@ public class GSMPhone extends PhoneBase {
         }
     }
 
+    /**
+     * Set the TTY mode of the GSMPhone
+     */
+    public void setTTYMode(int ttyMode, Message onComplete) {
+        this.mCM.setTTYMode(ttyMode, onComplete);
+    }
+
+    /**
+     * Queries the TTY mode of the GSMPhone
+     */
+    public void queryTTYMode(Message onComplete) {
+        this.mCM.queryTTYMode(onComplete);
+    }
+
+
     public void getOutgoingCallerIdDisplay(Message onComplete) {
         mCM.getCLIR(onComplete);
     }
