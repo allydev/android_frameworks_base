@@ -44,6 +44,10 @@
 #ifdef HAVE_ANDROID_OS
 # include <sys/limits.h>        /* not part of Linux */
 #endif
+#ifdef QCOM_TEST_ONLY
+#include <linux/fb.h>
+#include <linux/input.h>
+#endif
 #include <sys/poll.h>
 #include <sys/ioctl.h>
 
@@ -75,6 +79,10 @@ namespace android {
 
 static const char *WAKE_LOCK_ID = "KeyEvents";
 static const char *device_path = "/dev/input";
+#ifdef QCOM_TEST_ONLY
+static const char *fb_devicename = "/dev/graphics/fb0";
+#endif
+
 
 /* return the larger integer */
 static inline int max(int v1, int v2)
@@ -316,7 +324,10 @@ bool EventHub::getEvent(int32_t* outDeviceId, int32_t* outType,
     int res;
     int pollres;
     struct input_event iev;
-
+#ifdef QCOM_TEST_ONLY
+    static int fb_status = 1;
+    int fb_dev,ret;
+#endif
     // Note that we only allow one caller to getEvent(), so don't need
     // to do locking here...  only when adding/removing devices.
 
@@ -385,6 +396,34 @@ bool EventHub::getEvent(int32_t* outDeviceId, int32_t* outType,
                             err = mDevices[i]->layoutMap->map(iev.code, outKeycode, outFlags);
                             LOGV("iev.code=%d outKeycode=%d outFlags=0x%08x err=%d\n",
                                 iev.code, *outKeycode, *outFlags, err);
+#ifdef QCOM_TEST_ONLY
+                            /*The LCD/BL will be toggled ON/OFF by pressing KEY_HOME for testing purposes  */
+                            if(iev.code == KEY_HOME) {
+                                if(iev.value == 0) {
+                                    fb_dev = open(fb_devicename, O_RDWR);
+                                    if(fb_dev < 0) {
+                                        LOGE("EventHub>> FB Device open failed\n");
+                                    } else {
+                                        if(fb_status) {
+                                            LOGI("EventHub>> turn off LCD\n");
+                                            ret = ioctl(fb_dev,FBIOBLANK, FB_BLANK_POWERDOWN);
+                                            if(ret < 0)
+                                                LOGE("EventHub>> FB blank IOCTL Failed return value=%d\n",ret);
+                                            fb_status = 0;
+                                        } else {
+                                            LOGI("EventHub>> turn on LCD\n");
+                                            ret = ioctl(fb_dev,FBIOBLANK, FB_BLANK_UNBLANK);
+                                            if(ret < 0)
+                                                LOGE("EventHub>> FB unblank IOCTL Failed return value=%d\n",ret);
+                                            fb_status = 1;
+                                        }
+                                        ret = close(fb_dev);
+                                    }
+                                }
+                                /* Drop the event and avoid propogation of the event to applications */
+                                err=-1;
+                            }
+#endif
                             if (err != 0) {
                                 *outKeycode = 0;
                                 *outFlags = 0;
