@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -861,8 +862,7 @@ public final class GsmMmiCode  extends Handler implements MmiCode {
 
                 if (ar.exception != null) {
                     state = State.FAILED;
-                    message = context.getText(
-                                            com.android.internal.R.string.mmiError);
+                    message = getErrorMessage(ar);
 
                     phone.onMMIDone(this);
                 }
@@ -880,6 +880,19 @@ public final class GsmMmiCode  extends Handler implements MmiCode {
         }
     }
     //***** Private instance methods
+
+    private CharSequence getErrorMessage(AsyncResult ar) {
+
+        if (ar.exception instanceof CommandException) {
+            CommandException.Error err = ((CommandException)(ar.exception)).getCommandError();
+            if (err == CommandException.Error.FDN_FAILURE) {
+                Log.i(LOG_TAG, "FDN_FAILURE");
+                return context.getText(com.android.internal.R.string.mmiFdnError);
+            }
+        }
+
+        return context.getText(com.android.internal.R.string.mmiError);
+    }
 
     private CharSequence getScString() {
         if (sc != null) {
@@ -933,13 +946,13 @@ public final class GsmMmiCode  extends Handler implements MmiCode {
                     sb.append("\n");
                     sb.append(context.getText(
                             com.android.internal.R.string.needPuk2));
+                } else if (err == CommandException.Error.FDN_FAILURE) {
+                    Log.i(LOG_TAG, "FDN_FAILURE");
+                    sb.append(context.getText(com.android.internal.R.string.mmiFdnError));
                 } else {
                     sb.append(context.getText(
                             com.android.internal.R.string.mmiError));
                 }
-            } else {
-                sb.append(context.getText(
-                        com.android.internal.R.string.mmiError));
             }
         } else if (isActivate()) {
             state = State.COMPLETE;
@@ -987,7 +1000,7 @@ public final class GsmMmiCode  extends Handler implements MmiCode {
 
         if (ar.exception != null) {
             state = State.FAILED;
-            sb.append(context.getText(com.android.internal.R.string.mmiError));
+            sb.append(getErrorMessage(ar));
         } else {
             int clirArgs[];
 
@@ -1157,7 +1170,7 @@ public final class GsmMmiCode  extends Handler implements MmiCode {
 
         if (ar.exception != null) {
             state = State.FAILED;
-            sb.append(context.getText(com.android.internal.R.string.mmiError));
+            sb.append(getErrorMessage(ar));
         } else {
             CallForwardInfo infos[];
 
@@ -1209,7 +1222,7 @@ public final class GsmMmiCode  extends Handler implements MmiCode {
 
         if (ar.exception != null) {
             state = State.FAILED;
-            sb.append(context.getText(com.android.internal.R.string.mmiError));
+            sb.append(getErrorMessage(ar));
         } else {
             int[] ints = (int[])ar.result;
 
