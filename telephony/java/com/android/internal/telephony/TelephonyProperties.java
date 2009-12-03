@@ -136,4 +136,10 @@ public interface TelephonyProperties
      * monotonically, regardless of reboots.
      */
     static final String PROPERTY_CDMA_MSG_ID = "persist.radio.cdma.msgid";
+
+    /**
+     * Set to true to indicate that the modem needs to be reset
+     * when there is a radio technology change.
+     */
+    static final String PROPERTY_RESET_ON_RADIO_TECH_CHANGE = "persist.radio.reset_on_switch";
 }

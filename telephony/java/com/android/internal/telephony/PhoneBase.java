@@ -115,6 +115,7 @@ public abstract class PhoneBase extends Handler implements Phone {
     boolean mDoesRilSendMultipleCallRing;
     int mCallRingContinueToken = 0;
     int mCallRingDelay;
+    public boolean mIsTheCurrentActivePhone = true;
 
     /**
      * Set a system property, unless we're in unit test mode
@@ -227,6 +228,8 @@ public abstract class PhoneBase extends Handler implements Phone {
     public void dispose() {
         synchronized(PhoneProxy.lockForRadioTechnologyChange) {
             mCM.unSetOnCallRing(this);
+            mDataConnection.onCleanUpConnection(false, REASON_RADIO_TURNED_OFF);
+            mIsTheCurrentActivePhone = false;
         }
     }
 
