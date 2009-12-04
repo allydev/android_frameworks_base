@@ -150,6 +150,8 @@ status_t AudioRecord::set(
       frameSizeInBytes = channelCount * 23; // Full rate framesize
 	 } else if (format == AudioSystem::QCELP) {
       frameSizeInBytes = channelCount * 35; // Full rate framesize
+         } else if (format == AudioSystem::AAC) {
+      frameSizeInBytes = 2048;
     } else if ((format == AudioSystem::PCM_16_BIT) || (format == AudioSystem::PCM_8_BIT)) {
       if (AudioSystem::isLinearPCM(format)) {
         frameSizeInBytes = channelCount * (format == AudioSystem::PCM_16_BIT ? sizeof(int16_t) : sizeof(int8_t));
@@ -247,6 +249,10 @@ int AudioRecord::frameSize() const
         return channelCount() * 23; // Full rate framesize
     } else if (format() == AudioSystem::QCELP) {
         return channelCount() * 35; // Full rate framesize
+    } else if (format() == AudioSystem::AAC) {
+        // Not actual framsize but for variable frame rate AAC encoding,
+        // buffer size is treated as a frame size
+        return 2048;
     }
 
 	 //default format PCM
@@ -528,7 +534,7 @@ status_t AudioRecord::obtainBuffer(Buffer* audioBuffer, int32_t waitCount)
     audioBuffer->channelCount= mChannelCount;
     audioBuffer->format      = mFormat;
     audioBuffer->frameCount  = framesReq;
-    if(framesReq >= 10)
+    if(framesReq >= 10 || (mFormat == AudioSystem::AAC))
       audioBuffer->size = framesReq*cblk->frameSize;
     else
       audioBuffer->size = 0;
@@ -607,6 +613,10 @@ ssize_t AudioRecord::read(void* buffer, size_t userSize)
           break;
         } else if ( (format() == AudioSystem::QCELP) &&
              (userSize < 350)) {
+          LOGI("Breaking out of the read loop, since the minimum buffer count for read is missed %d", userSize);
+          break;
+        } else if ( (format() == AudioSystem::AAC) &&
+             (userSize < 2048)) {
           LOGI("Breaking out of the read loop, since the minimum buffer count for read is missed %d", userSize);
           break;
         }

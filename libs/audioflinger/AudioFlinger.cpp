@@ -2337,6 +2337,10 @@ AudioFlinger::ThreadBase::TrackBase::TrackBase(
    {
        bufferSize = frameCount*channelCount*35; // full rate frame size
    }
+   else if (format == AudioSystem::AAC)
+   {
+       bufferSize = frameCount*2048; // full rate frame size
+   }
 
    if (sharedBuffer == 0) {
        size += bufferSize;
@@ -2371,6 +2375,10 @@ AudioFlinger::ThreadBase::TrackBase::TrackBase(
                     else if (format == AudioSystem::QCELP)
                     {
                       memset(mBuffer, 0, frameCount*channelCount*35); // full rate frame size
+                    }
+                    else if (format == AudioSystem::AAC)
+                    {
+                      memset(mBuffer, 0, frameCount*2048); // full rate frame size
                     }
                     // Force underrun condition to avoid false underrun callback until first data is
                     // written to buffer
@@ -2775,6 +2783,8 @@ AudioFlinger::RecordThread::RecordTrack::RecordTrack(
            mCblk->frameSize = channelCount * 23;
        } else if (format == AudioSystem::QCELP) {
            mCblk->frameSize = channelCount * 35;
+       } else if (format == AudioSystem::AAC) {
+           mCblk->frameSize = 2048;
        } else if (format == AudioSystem::PCM_16_BIT) {
            mCblk->frameSize = channelCount * sizeof(int16_t);
        } else if (format == AudioSystem::PCM_8_BIT) {
@@ -3248,6 +3258,10 @@ sp<IAudioRecord> AudioFlinger::openRecord(
         else if (format == AudioSystem::QCELP)
         {
           inFrameCount = inputBufferSize/channelCount/35;
+        }
+        else if (format == AudioSystem::AAC)
+        {
+          inFrameCount = inputBufferSize/2048;
         }
         frameCount = ((frameCount - 1)/inFrameCount + 1) * inFrameCount;
         // create new record track. The record track uses one track in mHardwareMixerThread by convention.
