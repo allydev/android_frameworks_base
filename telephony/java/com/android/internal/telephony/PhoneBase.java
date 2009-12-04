@@ -116,6 +116,7 @@ public abstract class PhoneBase extends Handler implements Phone {
     int mCallRingContinueToken = 0;
     int mCallRingDelay;
     public boolean mIsTheCurrentActivePhone = true;
+    private boolean mModemPowerSaveStatus = false;
 
     /**
      * Set a system property, unless we're in unit test mode
@@ -1059,6 +1060,21 @@ public abstract class PhoneBase extends Handler implements Phone {
         }
 
         return RILConstants.NO_PHONE;
+    }
+
+    /**
+     * Checks whether the modem is in power save mode
+     * @return true if modem is in power save mode
+     */
+    public boolean isModemPowerSave() {
+        return mModemPowerSaveStatus;
+    }
+
+    /**
+     * Update modem power save status flag as per the argument passed
+     */
+    public void setPowerSaveStatus(boolean value) {
+        mModemPowerSaveStatus = value;
     }
 
 }
