@@ -38,6 +38,11 @@ LOCAL_SHARED_LIBRARIES := \
 	libhardware \
 	libhardware_legacy
 
+
+ifeq ($(BOARD_USE_QCOM_TESTONLY),true)
+	LOCAL_CFLAGS += -DQCOM_TEST_ONLY
+endif
+
 LOCAL_MODULE:= libui
 
 ifeq ($(TARGET_SIMULATOR),true)
