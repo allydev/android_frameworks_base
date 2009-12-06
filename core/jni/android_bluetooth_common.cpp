@@ -68,12 +68,6 @@ static Properties adapter_properties[] = {
     {"Devices", DBUS_TYPE_ARRAY},
 };
 
-typedef union {
-    char *str_val;
-    int int_val;
-    char **array_val;
-} property_value;
-
 jfieldID get_field(JNIEnv *env, jclass clazz, const char *member,
                    const char *mtype) {
     jfieldID field = env->GetFieldID(clazz, member, mtype);
@@ -231,13 +225,11 @@ DBusMessage * dbus_func_args_timeout_valist(JNIEnv *env,
         LOGE("Could not append argument to method call!");
         goto done;
     }
-
     /* Make the call. */
     reply = dbus_connection_send_with_reply_and_block(conn, msg, timeout_ms, err);
     if (!return_error && dbus_error_is_set(err)) {
         LOG_AND_FREE_DBUS_ERROR_WITH_MSG(err, msg);
     }
-
 done:
     if (!return_error) {
         free(err);
@@ -296,6 +288,26 @@ DBusMessage * dbus_func_args_error(JNIEnv *env,
     va_list lst;
     va_start(lst, first_arg_type);
     ret = dbus_func_args_timeout_valist(env, conn, -1, err,
+                                        dest, path, ifc, func,
+                                        first_arg_type, lst);
+    va_end(lst);
+    return ret;
+}
+
+DBusMessage * dbus_func_args_timeout_error(JNIEnv *env,
+                                           DBusConnection *conn,
+                                           int timeout_ms,
+                                           DBusError *err,
+                                           const char *dest,
+                                           const char *path,
+                                           const char *ifc,
+                                           const char *func,
+                                           int first_arg_type,
+                                           ...) {
+    DBusMessage *ret;
+    va_list lst;
+    va_start(lst, first_arg_type);
+    ret = dbus_func_args_timeout_valist(env, conn, timeout_ms, err,
                                         dest, path, ifc, func,
                                         first_arg_type, lst);
     va_end(lst);
@@ -462,6 +474,63 @@ jbyteArray dbus_returns_array_of_bytes(JNIEnv *env, DBusMessage *reply) {
 
     dbus_message_unref(reply);
     return byteArray;
+}
+
+bool dbus_append_variant_dict_entry(DBusMessageIter *array_iter, const char *key, int type, void *val)
+{
+    LOGI(__FUNCTION__);
+
+    DBusMessageIter dict_entry, variant;
+    char var_type[2] = {type, '\0'};
+    bool result = FALSE;
+
+    if (!dbus_message_iter_open_container(array_iter, DBUS_TYPE_DICT_ENTRY,
+                                          NULL, &dict_entry)) {
+        LOGE("Could not open D-Bus container!");
+        return result;
+    } else {
+        LOGI("Opened dictionary container");
+    }
+
+    if (!dbus_message_iter_append_basic(&dict_entry, DBUS_TYPE_STRING,
+                                        &key)) {
+        LOGE("Could not append key in D-Bus DICT_ENTRY!");
+        goto close_dict_entry;
+    } else {
+        LOGI("Appended key");
+    }
+
+    if (!dbus_message_iter_open_container(&dict_entry, DBUS_TYPE_VARIANT,
+                                          var_type, &variant)) {
+        LOGE("Could not open D-Bus container!");
+        goto close_dict_entry;
+    } else {
+        LOGI("Opened variant container");
+    }
+
+    if (!dbus_message_iter_append_basic(&variant, type, val)) {
+        LOGE("Could not append value in D-Bus DICT_ENTRY!");
+    } else {
+        LOGI("Appended variant value");
+        result = TRUE;
+    }
+
+    if (!dbus_message_iter_close_container(&dict_entry, &variant)) {
+        LOGE("Could not close variant container!");
+        result = FALSE;
+    } else {
+        LOGI("Closed variant container");
+    }
+
+close_dict_entry:
+    if (!dbus_message_iter_close_container(array_iter, &dict_entry)) {
+        LOGE("Could not close D-Bus container!");
+        result = FALSE;
+    } else {
+        LOGI("Closed dictionary container");
+    }
+
+    return result;
 }
 
 void append_variant(DBusMessageIter *iter, int type, void *val)

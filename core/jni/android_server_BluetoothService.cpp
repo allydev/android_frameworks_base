@@ -341,6 +341,24 @@ static jint getDeviceServiceChannelNative(JNIEnv *env, jobject object,
         const char *c_path = env->GetStringUTFChars(path, NULL);
         LOGV("... pattern = %s", c_pattern);
         LOGV("... attr_id = %#X", attr_id);
+
+#ifdef USE_BM3_BLUETOOTH
+        /* For some profiles (e.g., HSP and HFP), RFCOMM channels aren't required and service
+         * record processing is done at connect... in this case, return early.
+         */
+
+        // TODO: introduce symbolic constants
+        if (0 == strcmp(c_pattern, "0000111e-0000-1000-8000-00805f9b34fb")) { /* if(HFP) */
+            env->ReleaseStringUTFChars(pattern, c_pattern);
+            env->ReleaseStringUTFChars(path, c_path);
+            return 5;
+        } else if (0 == strcmp(c_pattern, "00001108-0000-1000-8000-00805f9b34fb")) { /* else if(HSP) */
+            env->ReleaseStringUTFChars(pattern, c_pattern);
+            env->ReleaseStringUTFChars(path, c_path);
+            return 6;
+        }
+#endif /* USE_BM3_BLUETOOTH */
+
         DBusMessage *reply =
             dbus_func_args(env, nat->conn, DBUS_SVC_NAME, c_path,
                            DBUS_DEVICE_IFACE, "GetServiceAttributeValue",
