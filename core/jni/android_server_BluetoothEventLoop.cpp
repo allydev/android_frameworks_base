@@ -1,5 +1,6 @@
 /*
 ** Copyright 2008, The Android Open Source Project
+** Copyright (c) 2009, Code Aurora Forum, Inc. All rights reserved.
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -169,8 +170,8 @@ static DBusHandlerResult event_filter(DBusConnection *conn, DBusMessage *msg,
 DBusHandlerResult agent_event_filter(DBusConnection *conn,
                                      DBusMessage *msg,
                                      void *data);
-static int register_agent(native_data_t *nat,
-                          const char *agent_path, const char *capabilities);
+static int register_agents(native_data_t *nat,
+                           const char *agent_path, const char *capabilities);
 
 static const DBusObjectPathVTable agent_vtable = {
     NULL, agent_event_filter, NULL, NULL, NULL, NULL
@@ -211,6 +212,7 @@ static jboolean setUpEventLoop(native_data_t *nat) {
             LOG_AND_FREE_DBUS_ERROR(&err);
             return JNI_FALSE;
         }
+
         dbus_bus_add_match(nat->conn,
                 "type='signal',interface='"BLUEZ_DBUS_BASE_IFC".Adapter'",
                 &err);
@@ -218,6 +220,7 @@ static jboolean setUpEventLoop(native_data_t *nat) {
             LOG_AND_FREE_DBUS_ERROR(&err);
             return JNI_FALSE;
         }
+
         dbus_bus_add_match(nat->conn,
                 "type='signal',interface='"BLUEZ_DBUS_BASE_IFC".Device'",
                 &err);
@@ -225,6 +228,7 @@ static jboolean setUpEventLoop(native_data_t *nat) {
             LOG_AND_FREE_DBUS_ERROR(&err);
             return JNI_FALSE;
         }
+
         dbus_bus_add_match(nat->conn,
                 "type='signal',interface='org.bluez.AudioSink'",
                 &err);
@@ -233,9 +237,9 @@ static jboolean setUpEventLoop(native_data_t *nat) {
             return JNI_FALSE;
         }
 
-        const char *agent_path = "/android/bluetooth/agent";
+        const char *agent_path = ANDROID_PASSKEY_AGENT_PATH;
         const char *capabilities = "DisplayYesNo";
-        if (register_agent(nat, agent_path, capabilities) < 0) {
+        if (register_agents(nat, agent_path, capabilities) < 0) {
             dbus_connection_unregister_object_path (nat->conn, agent_path);
             return JNI_FALSE;
         }
@@ -243,7 +247,6 @@ static jboolean setUpEventLoop(native_data_t *nat) {
     }
     return JNI_FALSE;
 }
-
 
 const char * get_adapter_path(DBusConnection *conn) {
     DBusMessage *msg = NULL, *reply = NULL;
@@ -300,8 +303,8 @@ failed:
     return NULL;
 }
 
-static int register_agent(native_data_t *nat,
-                          const char * agent_path, const char * capabilities)
+static int register_agents(native_data_t *nat,
+                           const char * agent_path, const char * capabilities)
 {
     DBusMessage *msg, *reply;
     DBusError err;
@@ -324,6 +327,7 @@ static int register_agent(native_data_t *nat,
               __FUNCTION__);
         return -1;
     }
+
     dbus_message_append_args(msg, DBUS_TYPE_OBJECT_PATH, &agent_path,
                              DBUS_TYPE_STRING, &capabilities,
                              DBUS_TYPE_INVALID);
@@ -340,7 +344,10 @@ static int register_agent(native_data_t *nat,
         return -1;
     }
 
+    LOGV("Registered Passkey Agent Path %s", agent_path);
+
     dbus_message_unref(reply);
+
     dbus_connection_flush(nat->conn);
 
     return 0;
@@ -588,7 +595,7 @@ static void *eventLoopMain(void *ptr) {
                 break;
             }
         }
-        while (dbus_connection_dispatch(nat->conn) == 
+        while (dbus_connection_dispatch(nat->conn) ==
                 DBUS_DISPATCH_DATA_REMAINS) {
         }
 
@@ -753,10 +760,14 @@ static DBusHandlerResult event_filter(DBusConnection *conn, DBusMessage *msg,
                     parse_remote_device_properties(env, &iter);
         }
         if (str_array != NULL) {
+            jstring address = env->NewStringUTF(c_address);
+
             env->CallVoidMethod(nat->me,
                                 method_onDeviceFound,
-                                env->NewStringUTF(c_address),
+                                address,
                                 str_array);
+
+            env->DeleteLocalRef(address);
         } else
             LOG_AND_FREE_DBUS_ERROR_WITH_MSG(&err, msg);
         goto success;
@@ -768,8 +779,12 @@ static DBusHandlerResult event_filter(DBusConnection *conn, DBusMessage *msg,
                                   DBUS_TYPE_STRING, &c_address,
                                   DBUS_TYPE_INVALID)) {
             LOGV("... address = %s", c_address);
-            env->CallVoidMethod(nat->me, method_onDeviceDisappeared,
-                                env->NewStringUTF(c_address));
+
+            jstring address = env->NewStringUTF(c_address);
+
+            env->CallVoidMethod(nat->me, method_onDeviceDisappeared, address);
+
+            env->DeleteLocalRef(address);
         } else LOG_AND_FREE_DBUS_ERROR_WITH_MSG(&err, msg);
         goto success;
     } else if (dbus_message_is_signal(msg,
@@ -780,9 +795,14 @@ static DBusHandlerResult event_filter(DBusConnection *conn, DBusMessage *msg,
                                   DBUS_TYPE_OBJECT_PATH, &c_object_path,
                                   DBUS_TYPE_INVALID)) {
             LOGV("... address = %s", c_object_path);
+
+            jstring path = env->NewStringUTF(c_object_path);
+
             env->CallVoidMethod(nat->me,
                                 method_onDeviceCreated,
-                                env->NewStringUTF(c_object_path));
+                                path);
+
+            env->DeleteLocalRef(path);
         } else LOG_AND_FREE_DBUS_ERROR_WITH_MSG(&err, msg);
         goto success;
     } else if (dbus_message_is_signal(msg,
@@ -793,9 +813,14 @@ static DBusHandlerResult event_filter(DBusConnection *conn, DBusMessage *msg,
                                  DBUS_TYPE_OBJECT_PATH, &c_object_path,
                                  DBUS_TYPE_INVALID)) {
            LOGV("... Object Path = %s", c_object_path);
+
+           jstring path = env->NewStringUTF(c_object_path);
+
            env->CallVoidMethod(nat->me,
                                method_onDeviceRemoved,
-                               env->NewStringUTF(c_object_path));
+                               path);
+
+           env->DeleteLocalRef(path);
         } else LOG_AND_FREE_DBUS_ERROR_WITH_MSG(&err, msg);
         goto success;
     } else if (dbus_message_is_signal(msg,
@@ -827,10 +852,14 @@ static DBusHandlerResult event_filter(DBusConnection *conn, DBusMessage *msg,
         jobjectArray str_array = parse_remote_device_property_change(env, msg);
         if (str_array != NULL) {
             const char *remote_device_path = dbus_message_get_path(msg);
+            jstring path = env->NewStringUTF(remote_device_path);
+
             env->CallVoidMethod(nat->me,
                             method_onDevicePropertyChanged,
-                            env->NewStringUTF(remote_device_path),
+                            path,
                             str_array);
+
+            env->DeleteLocalRef(path);
         } else LOG_AND_FREE_DBUS_ERROR_WITH_MSG(&err, msg);
         goto success;
     } else if (dbus_message_is_signal(msg,
@@ -884,22 +913,28 @@ DBusHandlerResult agent_event_filter(DBusConnection *conn,
 
     } else if (dbus_message_is_method_call(msg,
             "org.bluez.Agent", "Authorize")) {
-        char *object_path;
-        const char *uuid;
+        char *c_object_path;
+        const char *c_uuid;
         if (!dbus_message_get_args(msg, NULL,
-                                   DBUS_TYPE_OBJECT_PATH, &object_path,
-                                   DBUS_TYPE_STRING, &uuid,
+                                   DBUS_TYPE_OBJECT_PATH, &c_object_path,
+                                   DBUS_TYPE_STRING, &c_uuid,
                                    DBUS_TYPE_INVALID)) {
             LOGE("%s: Invalid arguments for Authorize() method", __FUNCTION__);
             goto failure;
         }
 
-        LOGV("... object_path = %s", object_path);
-        LOGV("... uuid = %s", uuid);
+        LOGV("... object_path = %s", c_object_path);
+        LOGV("... uuid = %s", c_uuid);
+
+        jstring path = env->NewStringUTF(c_object_path);
+        jstring uuid = env->NewStringUTF(c_uuid);
 
         bool auth_granted =
             env->CallBooleanMethod(nat->me, method_onAgentAuthorize,
-                env->NewStringUTF(object_path), env->NewStringUTF(uuid));
+                path, uuid);
+
+        env->DeleteLocalRef(path);
+        env->DeleteLocalRef(uuid);
 
         // reply
         if (auth_granted) {
@@ -923,40 +958,50 @@ DBusHandlerResult agent_event_filter(DBusConnection *conn,
         goto success;
     } else if (dbus_message_is_method_call(msg,
             "org.bluez.Agent", "RequestPinCode")) {
-        char *object_path;
+        char *c_object_path;
         if (!dbus_message_get_args(msg, NULL,
-                                   DBUS_TYPE_OBJECT_PATH, &object_path,
+                                   DBUS_TYPE_OBJECT_PATH, &c_object_path,
                                    DBUS_TYPE_INVALID)) {
             LOGE("%s: Invalid arguments for RequestPinCode() method", __FUNCTION__);
             goto failure;
         }
 
         dbus_message_ref(msg);  // increment refcount because we pass to java
+
+        jstring path = env->NewStringUTF(c_object_path);
+
         env->CallVoidMethod(nat->me, method_onRequestPinCode,
-                                       env->NewStringUTF(object_path),
+                                       path,
                                        int(msg));
+
+        env->DeleteLocalRef(path);
         goto success;
     } else if (dbus_message_is_method_call(msg,
             "org.bluez.Agent", "RequestPasskey")) {
-        char *object_path;
+        char *c_object_path;
         if (!dbus_message_get_args(msg, NULL,
-                                   DBUS_TYPE_OBJECT_PATH, &object_path,
+                                   DBUS_TYPE_OBJECT_PATH, &c_object_path,
                                    DBUS_TYPE_INVALID)) {
             LOGE("%s: Invalid arguments for RequestPasskey() method", __FUNCTION__);
             goto failure;
         }
 
         dbus_message_ref(msg);  // increment refcount because we pass to java
+
+        jstring path = env->NewStringUTF(c_object_path);
+
         env->CallVoidMethod(nat->me, method_onRequestPasskey,
-                                       env->NewStringUTF(object_path),
+                                       path,
                                        int(msg));
+
+        env->DeleteLocalRef(path);
         goto success;
     } else if (dbus_message_is_method_call(msg,
             "org.bluez.Agent", "DisplayPasskey")) {
-        char *object_path;
+        char *c_object_path;
         uint32_t passkey;
         if (!dbus_message_get_args(msg, NULL,
-                                   DBUS_TYPE_OBJECT_PATH, &object_path,
+                                   DBUS_TYPE_OBJECT_PATH, &c_object_path,
                                    DBUS_TYPE_UINT32, &passkey,
                                    DBUS_TYPE_INVALID)) {
             LOGE("%s: Invalid arguments for RequestPasskey() method", __FUNCTION__);
@@ -964,17 +1009,22 @@ DBusHandlerResult agent_event_filter(DBusConnection *conn,
         }
 
         dbus_message_ref(msg);  // increment refcount because we pass to java
+
+        jstring path = env->NewStringUTF(c_object_path);
+
         env->CallVoidMethod(nat->me, method_onDisplayPasskey,
-                                       env->NewStringUTF(object_path),
+                                       path,
                                        passkey,
                                        int(msg));
+
+        env->DeleteLocalRef(path);
         goto success;
     } else if (dbus_message_is_method_call(msg,
             "org.bluez.Agent", "RequestConfirmation")) {
-        char *object_path;
+        char *c_object_path;
         uint32_t passkey;
         if (!dbus_message_get_args(msg, NULL,
-                                   DBUS_TYPE_OBJECT_PATH, &object_path,
+                                   DBUS_TYPE_OBJECT_PATH, &c_object_path,
                                    DBUS_TYPE_UINT32, &passkey,
                                    DBUS_TYPE_INVALID)) {
             LOGE("%s: Invalid arguments for RequestConfirmation() method", __FUNCTION__);
@@ -982,25 +1032,33 @@ DBusHandlerResult agent_event_filter(DBusConnection *conn,
         }
 
         dbus_message_ref(msg);  // increment refcount because we pass to java
+        jstring path = env->NewStringUTF(c_object_path);
+
         env->CallVoidMethod(nat->me, method_onRequestPasskeyConfirmation,
-                                       env->NewStringUTF(object_path),
+                                       path,
                                        passkey,
                                        int(msg));
+
+        env->DeleteLocalRef(path);
         goto success;
     } else if (dbus_message_is_method_call(msg,
             "org.bluez.Agent", "RequestPairingConsent")) {
-        char *object_path;
+        char *c_object_path;
         if (!dbus_message_get_args(msg, NULL,
-                                   DBUS_TYPE_OBJECT_PATH, &object_path,
+                                   DBUS_TYPE_OBJECT_PATH, &c_object_path,
                                    DBUS_TYPE_INVALID)) {
             LOGE("%s: Invalid arguments for RequestPairingConsent() method", __FUNCTION__);
             goto failure;
         }
 
         dbus_message_ref(msg);  // increment refcount because we pass to java
+        jstring path = env->NewStringUTF(c_object_path);
+
         env->CallVoidMethod(nat->me, method_onRequestPairingConsent,
-                                       env->NewStringUTF(object_path),
+                                       path,
                                        int(msg));
+
+        env->DeleteLocalRef(path);
         goto success;
     } else if (dbus_message_is_method_call(msg,
                   "org.bluez.Agent", "Release")) {
@@ -1045,13 +1103,14 @@ void onCreatePairedDeviceResult(DBusMessage *msg, void *user, void *n) {
     LOGV(__FUNCTION__);
 
     native_data_t *nat = (native_data_t *)n;
-    const char *address = (const char *)user;
+    const char *c_address = (const char *)user;
     DBusError err;
     dbus_error_init(&err);
     JNIEnv *env;
     nat->vm->GetEnv((void**)&env, nat->envVer);
 
-    LOGV("... address = %s", address);
+    LOGV("... address = %s", c_address);
+    jstring address = env->NewStringUTF(c_address);
 
     jint result = BOND_RESULT_SUCCESS;
     if (dbus_set_error_from_message(&err, msg)) {
@@ -1099,9 +1158,10 @@ void onCreatePairedDeviceResult(DBusMessage *msg, void *user, void *n) {
 
     env->CallVoidMethod(nat->me,
                         method_onCreatePairedDeviceResult,
-                        env->NewStringUTF(address),
+                        address,
                         result);
 done:
+    env->DeleteLocalRef(address);
     dbus_error_free(&err);
     free(user);
 }
@@ -1160,7 +1220,7 @@ void onDiscoverServicesResult(DBusMessage *msg, void *user, void *n) {
 void onGetDeviceServiceChannelResult(DBusMessage *msg, void *user, void *n) {
     LOGV(__FUNCTION__);
 
-    const char *address = (const char *) user;
+    const char *c_address = (const char *) user;
     native_data_t *nat = (native_data_t *) n;
 
     DBusError err;
@@ -1170,7 +1230,7 @@ void onGetDeviceServiceChannelResult(DBusMessage *msg, void *user, void *n) {
 
     jint channel = -2;
 
-    LOGV("... address = %s", address);
+    LOGV("... address = %s", c_address);
 
     if (dbus_set_error_from_message(&err, msg) ||
         !dbus_message_get_args(msg, &err,
@@ -1181,10 +1241,14 @@ void onGetDeviceServiceChannelResult(DBusMessage *msg, void *user, void *n) {
     }
 
 done:
+    jstring address = env->NewStringUTF(c_address);
+
     env->CallVoidMethod(nat->me,
                         method_onGetDeviceServiceChannelResult,
-                        env->NewStringUTF(address),
+                        address,
                         channel);
+
+    env->DeleteLocalRef(address);
     free(user);
 }
 #endif
@@ -1200,6 +1264,8 @@ static JNINativeMethod sMethods[] = {
 };
 
 int register_android_server_BluetoothEventLoop(JNIEnv *env) {
+    LOGV(__FUNCTION__);
+
     return AndroidRuntime::registerNativeMethods(env,
             "android/server/BluetoothEventLoop", sMethods, NELEM(sMethods));
 }

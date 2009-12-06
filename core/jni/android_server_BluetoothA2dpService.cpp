@@ -1,5 +1,6 @@
 /*
 ** Copyright 2008, The Android Open Source Project
+** Copyright (c) 2009, Code Aurora Forum, Inc. All rights reserved.
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -107,7 +108,7 @@ static jobjectArray getSinkPropertiesNative(JNIEnv *env, jobject object,
 
         const char *c_path = env->GetStringUTFChars(path, NULL);
         reply = dbus_func_args_timeout(env,
-                                   nat->conn, -1, c_path,
+                                   nat->conn, -1, BLUEZ_DBUS_BASE_SVC, c_path,
                                    "org.bluez.AudioSink", "GetProperties",
                                    DBUS_TYPE_INVALID);
         env->ReleaseStringUTFChars(path, c_path);
@@ -127,7 +128,6 @@ static jobjectArray getSinkPropertiesNative(JNIEnv *env, jobject object,
     return NULL;
 }
 
-
 static jboolean connectSinkNative(JNIEnv *env, jobject object, jstring path) {
 #ifdef HAVE_BLUETOOTH
     LOGV(__FUNCTION__);
@@ -135,6 +135,7 @@ static jboolean connectSinkNative(JNIEnv *env, jobject object, jstring path) {
         const char *c_path = env->GetStringUTFChars(path, NULL);
 
         bool ret = dbus_func_args_async(env, nat->conn, -1, NULL, NULL, nat,
+                                    BLUEZ_DBUS_BASE_SVC,
                                     c_path, "org.bluez.AudioSink", "Connect",
                                     DBUS_TYPE_INVALID);
 
@@ -153,6 +154,7 @@ static jboolean disconnectSinkNative(JNIEnv *env, jobject object,
         const char *c_path = env->GetStringUTFChars(path, NULL);
 
         bool ret = dbus_func_args_async(env, nat->conn, -1, NULL, NULL, nat,
+                                    BLUEZ_DBUS_BASE_SVC,
                                     c_path, "org.bluez.AudioSink", "Disconnect",
                                     DBUS_TYPE_INVALID);
 
@@ -170,6 +172,7 @@ static jboolean suspendSinkNative(JNIEnv *env, jobject object,
     if (nat) {
         const char *c_path = env->GetStringUTFChars(path, NULL);
         bool ret = dbus_func_args_async(env, nat->conn, -1, NULL, NULL, nat,
+                           BLUEZ_DBUS_BASE_SVC,
                            c_path, "org.bluez.audio.Sink", "Suspend",
                            DBUS_TYPE_INVALID);
         env->ReleaseStringUTFChars(path, c_path);
@@ -186,6 +189,7 @@ static jboolean resumeSinkNative(JNIEnv *env, jobject object,
     if (nat) {
         const char *c_path = env->GetStringUTFChars(path, NULL);
         bool ret = dbus_func_args_async(env, nat->conn, -1, NULL, NULL, nat,
+                           BLUEZ_DBUS_BASE_SVC,
                            c_path, "org.bluez.audio.Sink", "Resume",
                            DBUS_TYPE_INVALID);
         env->ReleaseStringUTFChars(path, c_path);
@@ -219,10 +223,15 @@ DBusHandlerResult a2dp_event_filter(DBusMessage *msg, JNIEnv *env) {
                     parse_property_change(env, msg, (Properties *)&sink_properties,
                                 sizeof(sink_properties) / sizeof(Properties));
         const char *c_path = dbus_message_get_path(msg);
+        jstring path = env->NewStringUTF(c_path);
+
         env->CallVoidMethod(nat->me,
                             method_onSinkPropertyChanged,
-                            env->NewStringUTF(c_path),
+                            path,
                             str_array);
+
+        env->DeleteLocalRef(path);
+
         result = DBUS_HANDLER_RESULT_HANDLED;
         return result;
     } else {
