@@ -463,6 +463,17 @@ public class SmsMessage extends SmsMessageBase {
     }
 
     /**
+     * Returns the message type of the message.
+     * @return the message type:
+     *  {@link com.android.internal.telephony.cdma.sms.SmsEnvelope#MESSAGE_TYPE_POINT_TO_POINT},
+     *  {@link com.android.internal.telephony.cdma.sms.SmsEnvelope#MESSAGE_TYPE_BROADCAST},
+     *  {@link com.android.internal.telephony.cdma.sms.SmsEnvelope#MESSAGE_TYPE_ACKNOWLEDGE},
+    */
+    public int getMessageType() {
+        return mEnvelope.messageType;
+    }
+
+    /**
      * Decodes pdu to an empty SMS object.
      * In the CDMA case the pdu is just an internal byte stream representation
      * of the SMS Java-object.
