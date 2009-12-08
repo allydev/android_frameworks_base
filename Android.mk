@@ -107,6 +107,7 @@ LOCAL_SRC_FILES += \
 	core/java/android/database/IContentObserver.aidl \
 	core/java/android/hardware/ISensorService.aidl \
 	core/java/android/net/IConnectivityManager.aidl \
+	core/java/android/net/IConSvcEventListener.aidl \
 	core/java/android/os/ICheckinService.aidl \
 	core/java/android/os/IHardwareService.aidl \
 	core/java/android/os/IMessenger.aidl \

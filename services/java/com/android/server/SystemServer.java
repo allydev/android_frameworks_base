@@ -42,6 +42,8 @@ import android.server.search.SearchManagerService;
 import android.util.EventLog;
 import android.util.Log;
 import android.accounts.AccountManagerService;
+import android.net.DefaultConnection;
+import android.net.LinkRequirments;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -238,6 +240,10 @@ class ServerThread extends Thread {
                 Log.i(TAG, "Connectivity Service");
                 connectivity = ConnectivityService.getInstance(context);
                 ServiceManager.addService(Context.CONNECTIVITY_SERVICE, connectivity);
+                /* create the default connection no metatdata right now */
+                LinkRequirments linkReqs = null;
+                DefaultConnection defaultConn = new DefaultConnection(linkReqs);
+                defaultConn.startConnection();
             } catch (Throwable e) {
                 Log.e(TAG, "Failure starting Connectivity Service", e);
             }
