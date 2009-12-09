@@ -398,4 +398,14 @@ extern "C" sp<CameraHardwareInterface> openCameraHardware()
     return CameraHardwareStub::createInstance();
 }
 
+bool CameraHardwareStub::useOverlay(void)
+{
+    /* Dont use Overlay for Stub Camera */
+    return false;
+}
+
+status_t CameraHardwareStub::setOverlay(const sp<Overlay> &Overlay)
+{
+    return NO_ERROR;
+}
 }; // namespace android

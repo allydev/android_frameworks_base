@@ -60,6 +60,8 @@ public:
     virtual status_t    sendCommand(int32_t command, int32_t arg1,
                                     int32_t arg2);
     virtual void release();
+    virtual bool useOverlay();
+    virtual status_t setOverlay(const sp<Overlay> &overlay);
 
     static sp<CameraHardwareInterface> createInstance();
 
