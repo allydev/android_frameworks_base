@@ -67,6 +67,7 @@ public class Process {
      */
     public static final int PHONE_UID = 1001;
 
+    public static final int FM_RADIO_UID = 1018;
     /**
      * Defines the UID/GID for the user shell.
      * @hide

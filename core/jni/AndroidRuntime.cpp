@@ -86,6 +86,8 @@ extern int register_android_message_digest_sha1(JNIEnv *env);
 
 extern int register_android_util_FloatMath(JNIEnv* env);
 
+extern int register_android_hardware_fm_fmradio(JNIEnv* env);
+
 namespace android {
 
 /*
@@ -1247,6 +1249,7 @@ static const RegJNIRec gRegJNI[] = {
     REG_JNI(register_android_backup_BackupDataOutput),
     REG_JNI(register_android_backup_FileBackupHelperBase),
     REG_JNI(register_android_backup_BackupHelperDispatcher),
+    REG_JNI(register_android_hardware_fm_fmradio),
 };
 
 /*
