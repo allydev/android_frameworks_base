@@ -48,8 +48,9 @@ public class MediaFile {
     public static final int FILE_TYPE_OGG     = 7;
     public static final int FILE_TYPE_QCP     = 8;
     public static final int FILE_TYPE_AAC     = 9;
+    public static final int FILE_TYPE_3GPA    = 10;
     private static final int FIRST_AUDIO_FILE_TYPE = FILE_TYPE_MP3;
-    private static final int LAST_AUDIO_FILE_TYPE = FILE_TYPE_AAC;
+    private static final int LAST_AUDIO_FILE_TYPE = FILE_TYPE_3GPA;
 
     // MIDI file types
     public static final int FILE_TYPE_MID     = 11;
@@ -137,6 +138,7 @@ public class MediaFile {
         addFileType("OGG", FILE_TYPE_OGG, "application/ogg");
         addFileType("OGA", FILE_TYPE_OGG, "application/ogg");
         addFileType("AAC", FILE_TYPE_AAC, "audio/aac");
+        addFileType("3GPP", FILE_TYPE_3GPA, "audio/3gpp");
  
         addFileType("MID", FILE_TYPE_MID, "audio/midi");
         addFileType("MIDI", FILE_TYPE_MID, "audio/midi");
