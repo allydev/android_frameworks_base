@@ -49,7 +49,7 @@ public interface RILConstants {
     int SUBSCRIPTION_NOT_AVAILABLE = 12;      /* fail to find CDMA subscription from specified
                                                  location */
     int MODE_NOT_SUPPORTED = 13;              /* HW does not support preferred network type */
-    int FDN_CHECK_FAILURE = 14;              /* send operation barred error when FDN is enabled and the user
+    int FDN_CHECK_FAILURE = 14;               /* send operation barred error when FDN is enabled and the user
                                                 sends sms or call or sends USSD string to non FDN number. */
 
     /* NETWORK_MODE_* See ril.h RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE */

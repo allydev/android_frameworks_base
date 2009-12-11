@@ -62,7 +62,7 @@ import static android.telephony.SmsManager.RESULT_ERROR_NO_SERVICE;
 import static android.telephony.SmsManager.RESULT_ERROR_NULL_PDU;
 import static android.telephony.SmsManager.RESULT_ERROR_RADIO_OFF;
 import static android.telephony.SmsManager.RESULT_ERROR_LIMIT_EXCEEDED;
-
+import static android.telephony.SmsManager.RESULT_ERROR_FDN_FAILURE;
 
 public abstract class SMSDispatcher extends Handler {
     private static final String TAG = "SMS";
@@ -470,13 +470,19 @@ public abstract class SMSDispatcher extends Handler {
                 Message retryMsg = obtainMessage(EVENT_SEND_RETRY, tracker);
                 sendMessageDelayed(retryMsg, SEND_RETRY_DELAY);
             } else if (tracker.mSentIntent != null) {
+                int error;
+                if (((CommandException) (ar.exception)).getCommandError() == CommandException.Error.FDN_FAILURE) {
+                    error = RESULT_ERROR_FDN_FAILURE;
+                } else {
+                    error = RESULT_ERROR_GENERIC_FAILURE;
+                }
                 // Done retrying; return an error to the app.
                 try {
                     Intent fillIn = new Intent();
                     if (ar.result != null) {
                         fillIn.putExtra("errorCode", ((SmsResponse)ar.result).errorCode);
                     }
-                    tracker.mSentIntent.send(mContext, RESULT_ERROR_GENERIC_FAILURE, fillIn);
+                    tracker.mSentIntent.send(mContext, error, fillIn);
                 } catch (CanceledException ex) {}
             }
         }
