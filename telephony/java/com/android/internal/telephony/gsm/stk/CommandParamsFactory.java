@@ -380,6 +380,12 @@ class CommandParamsFactory extends Handler {
             iconId = ValueParser.retrieveIconId(ctlv);
         }
 
+        // parse duration
+        ctlv = searchForTag(ComprehensionTlvTag.DURATION, ctlvs);
+        if (ctlv != null) {
+            input.duration = ValueParser.retrieveDuration(ctlv);
+        }
+
         input.minLen = 1;
         input.maxLen = 1;
 
