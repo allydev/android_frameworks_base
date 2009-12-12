@@ -44,6 +44,7 @@ protected:
         UNREGISTER_BUFFERS,
         POST_BUFFER, // one-way transaction
         CREATE_OVERLAY,
+        RELEASE_OVERLAY,
         REQUEST_BUFFER,
     };
 
@@ -87,6 +88,7 @@ public:
     
     virtual sp<OverlayRef> createOverlay(
             uint32_t w, uint32_t h, int32_t format) = 0;
+    virtual void releaseOverlay() = 0;
 };
 
 // ----------------------------------------------------------------------------

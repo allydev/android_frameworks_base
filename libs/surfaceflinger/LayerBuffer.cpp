@@ -243,6 +243,13 @@ sp<OverlayRef> LayerBuffer::SurfaceLayerBuffer::createOverlay(
         result = owner->createOverlay(w, h, format);
     return result;
 }
+void LayerBuffer::SurfaceLayerBuffer::releaseOverlay()
+{
+    sp<LayerBuffer> owner(getOwner());
+    if (owner != 0) {
+        owner->clearSource();
+    }
+}
 
 // ============================================================================
 // LayerBuffer::Buffer
