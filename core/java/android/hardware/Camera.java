@@ -803,6 +803,7 @@ public class Camera {
         private static final String PIXEL_FORMAT_YUV422I = "yuv422i-yuyv";
         private static final String PIXEL_FORMAT_RGB565 = "rgb565";
         private static final String PIXEL_FORMAT_JPEG = "jpeg";
+        private static final String PIXEL_FORMAT_RAW = "raw";
 
         private HashMap<String, String> mMap;
 

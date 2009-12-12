@@ -264,6 +264,7 @@ public:
     static const char PIXEL_FORMAT_YUV422I[]; // YUY2
     static const char PIXEL_FORMAT_RGB565[];
     static const char PIXEL_FORMAT_JPEG[];
+    static const char PIXEL_FORMAT_RAW[];
 
     // Values for focus mode settings.
     // Auto-focus mode.
