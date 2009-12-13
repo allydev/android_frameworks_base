@@ -141,6 +141,11 @@ public:
     // GPS altitude. This will be stored in JPEG EXIF header.
     // Example value: "21.0". Write only.
     static const char KEY_GPS_ALTITUDE[];
+    static const char KEY_GPS_LATITUDE_REF[];
+    static const char KEY_GPS_LONGITUDE_REF[];
+    static const char KEY_GPS_ALTITUDE_REF[];
+    static const char KEY_GPS_STATUS[];
+    static const char KEY_EXIF_DATETIME[];
     // GPS timestamp (UTC in seconds since January 1, 1970). This should be
     // stored in JPEG EXIF header.
     // Example value: "1251192757". Write only.
