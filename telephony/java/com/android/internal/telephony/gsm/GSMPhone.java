@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -986,7 +987,9 @@ public class GSMPhone extends PhoneBase {
 
     public void
     getAvailableNetworks(Message response) {
-        mCM.getAvailableNetworks(response);
+        Message msg;
+        msg = obtainMessage(EVENT_GET_NETWORKS_DONE,response);
+        mCM.getAvailableNetworks(msg);
     }
 
     /**
@@ -1350,6 +1353,28 @@ public class GSMPhone extends PhoneBase {
                 if (onComplete != null) {
                     AsyncResult.forMessage(onComplete, ar.result, ar.exception);
                     onComplete.sendToTarget();
+                }
+                break;
+
+            case EVENT_GET_NETWORKS_DONE:
+                ArrayList<NetworkInfo> eonsNetworkNames = null;
+
+                ar = (AsyncResult)msg.obj;
+                if (ar.exception == null) {
+                    eonsNetworkNames =
+                       mSIMRecords.getEonsAvailableNetworks((ArrayList<NetworkInfo>)ar.result);
+                }
+                if (eonsNetworkNames != null) {
+                    Log.i(LOG_TAG, "In EVENT_GET_NETWORKS_DONE, populated EONS names");
+                } else {
+                    eonsNetworkNames = (ArrayList<NetworkInfo>)ar.result;
+                }
+                onComplete = (Message) ar.userObj;
+                if (onComplete != null) {
+                    AsyncResult.forMessage(onComplete, eonsNetworkNames, ar.exception);
+                    onComplete.sendToTarget();
+                } else {
+                    Log.e(LOG_TAG, "In EVENT_GET_NETWORKS_DONE, onComplete is null");
                 }
                 break;
 

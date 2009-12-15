@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -460,7 +461,7 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
                 break;
 
             case EVENT_SIM_RECORDS_LOADED:
-                updateSpnDisplay();
+                checkEonsAndUpdateSpnDisplay();
                 break;
 
             case EVENT_LOCATION_UPDATES_ENABLED:
@@ -549,6 +550,7 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
         } // Otherwise, we're in the desired state
     }
 
+
     @Override
     protected void powerOffRadioSafely() {
         // clean data connection
@@ -579,15 +581,26 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
         cm.setRadioPower(false, null);
     }
 
-    protected void updateSpnDisplay() {
+    public void updateSpnDisplay() {
         int rule = phone.mSIMRecords.getDisplayRule(ss.getOperatorNumeric());
-        String spn = phone.mSIMRecords.getServiceProviderName();
+        String pnn = phone.mSIMRecords.getPnnLongName();
+        String spn = null;
         String plmn = ss.getOperatorAlphaLong();
+
+
 
         // For emergency calls only, pass the EmergencyCallsOnly string via EXTRA_PLMN
         if (mEmergencyOnly && cm.getRadioState().isOn()) {
             plmn = Resources.getSystem().
                 getText(com.android.internal.R.string.emergency_calls_only).toString();
+        }else if ((phone.mSIMRecords.isEonsEnabled()) && pnn != null) {
+            plmn = pnn;
+        }
+
+        //SPN name should be displayed only when the UE is registered to a
+        //Network.
+        if (ss.getState() == ServiceState.STATE_IN_SERVICE) {
+            spn = phone.mSIMRecords.getServiceProviderName();
         }
 
         if (rule != curSpnRule
@@ -597,7 +610,6 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
                 && (rule & SIMRecords.SPN_RULE_SHOW_SPN) == SIMRecords.SPN_RULE_SHOW_SPN;
             boolean showPlmn =
                 (rule & SIMRecords.SPN_RULE_SHOW_PLMN) == SIMRecords.SPN_RULE_SHOW_PLMN;
-
             Intent intent = new Intent(Intents.SPN_STRINGS_UPDATED_ACTION);
             intent.addFlags(Intent.FLAG_RECEIVER_REPLACE_PENDING);
             intent.putExtra(Intents.EXTRA_SHOW_SPN, showSpn);
@@ -889,11 +901,16 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
 
         boolean hasLocationChanged = !newCellLoc.equals(cellLoc);
 
+        boolean hasLacChanged = (newCellLoc.getLac() != cellLoc.getLac());
+
         // Add an event log when connection state changes
         if (ss.getState() != newSS.getState() || gprsState != newGPRSState) {
             EventLog.writeEvent(EventLogTags.GSM_SERVICE_STATE_CHANGE,
                 ss.getState(), gprsState, newSS.getState(), newGPRSState);
         }
+
+
+
 
         ServiceState tss;
         tss = ss;
@@ -936,7 +953,8 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
         if (hasChanged) {
             String operatorNumeric;
 
-            updateSpnDisplay();
+            Log.i(LOG_TAG,"EONS: ServiceState changed,calling checkEonsAndUpdateSpnDisplay()");
+            checkEonsAndUpdateSpnDisplay();
 
             phone.setSystemProperty(TelephonyProperties.PROPERTY_OPERATOR_ALPHA,
                 ss.getOperatorAlphaLong());
@@ -1028,6 +1046,14 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
 
         if (hasLocationChanged) {
             phone.notifyLocationChanged();
+        }
+
+        if (hasLacChanged) {
+            if (phone.mSIMRecords.isEonsEnabled()) {
+                //LAC changed, display Eons Name from EF_OPL/EF_PNN data.
+                Log.i(LOG_TAG,"EONS: LAC changed, calling fetchAndDisplayEonsName");
+                phone.mSIMRecords.fetchAndDisplayEonsName();
+            }
         }
 
         if (! isGprsConsistant(gprsState, ss.getState())) {
@@ -1660,6 +1686,18 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
             // update restricted state notification
             notificationManager.notify(notificationId, mNotification);
         }
+    }
+
+    void checkEonsAndUpdateSpnDisplay() {
+       //Display Eons Name if Eons or Adapt property is enabled and Eons is
+       //not disabled in EF_SST/EF_UST
+       if ((!SystemProperties.getBoolean("persist.cust.tel.adapt",false) &&
+            !SystemProperties.getBoolean("persist.cust.tel.eons",false))  ||
+           (phone.mSIMRecords.getSstPlmnOplValue() == 0)) {
+           updateSpnDisplay();
+       } else {
+           phone.mSIMRecords.fetchAndDisplayEonsName();
+       }
     }
 
     private void log(String s) {
