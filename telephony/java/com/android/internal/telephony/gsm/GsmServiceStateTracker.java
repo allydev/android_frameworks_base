@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -457,7 +458,7 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
                 break;
 
             case EVENT_SIM_RECORDS_LOADED:
-                updateSpnDisplay();
+                checkEonsAndUpdateSpnDisplay();
                 break;
 
             case EVENT_LOCATION_UPDATES_ENABLED:
@@ -567,18 +568,29 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
         } // Otherwise, we're in the desired state
     }
 
-    protected void updateSpnDisplay() {
+    public void updateSpnDisplay() {
         int rule = phone.mSIMRecords.getDisplayRule(ss.getOperatorNumeric());
+        String pnn = phone.mSIMRecords.getPnnLongName();
         String spn = phone.mSIMRecords.getServiceProviderName();
         String plmn = ss.getOperatorAlphaLong();
 
+        if ((phone.mSIMRecords.isEonsEnabled()) && pnn != null) {
+            plmn = pnn;
+        }
         if (rule != curSpnRule
                 || !TextUtils.equals(spn, curSpn)
                 || !TextUtils.equals(plmn, curPlmn)) {
             boolean showSpn =
                 (rule & SIMRecords.SPN_RULE_SHOW_SPN) == SIMRecords.SPN_RULE_SHOW_SPN;
-            boolean showPlmn =
-                (rule & SIMRecords.SPN_RULE_SHOW_PLMN) == SIMRecords.SPN_RULE_SHOW_PLMN;
+            boolean showPlmn;
+            if (phone.mSIMRecords.isEonsEnabled()) {
+                //When EONS is enabled, always show derived EONS name for the
+                //registered PLMN.
+                showPlmn = true;
+            } else {
+                showPlmn =
+                   (rule & SIMRecords.SPN_RULE_SHOW_PLMN) == SIMRecords.SPN_RULE_SHOW_PLMN;
+            }
             Intent intent = new Intent(Intents.SPN_STRINGS_UPDATED_ACTION);
             intent.putExtra(Intents.EXTRA_SHOW_SPN, showSpn);
             intent.putExtra(Intents.EXTRA_SPN, spn);
@@ -885,6 +897,8 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
 
         boolean hasLocationChanged = !newCellLoc.equals(cellLoc);
 
+        boolean hasLacChanged = (newCellLoc.getLac() != cellLoc.getLac());
+
         ServiceState tss;
         tss = ss;
         ss = newSS;
@@ -980,7 +994,8 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
             phone.setSystemProperty(TelephonyProperties.PROPERTY_OPERATOR_ISROAMING,
                 ss.getRoaming() ? "true" : "false");
 
-            updateSpnDisplay();
+            Log.i(LOG_TAG,"EONS: ServiceState changed,calling checkEonsAndUpdateSpnDisplay()");
+            checkEonsAndUpdateSpnDisplay();
             phone.notifyServiceStateChanged(ss);
         }
 
@@ -1006,6 +1021,14 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
 
         if (hasLocationChanged) {
             phone.notifyLocationChanged();
+        }
+
+        if (hasLacChanged) {
+            if (phone.mSIMRecords.isEonsEnabled()) {
+                //LAC changed, display Eons Name from EF_OPL/EF_PNN data.
+                Log.i(LOG_TAG,"EONS: LAC changed, calling fetchAndDisplayEonsName");
+                phone.mSIMRecords.fetchAndDisplayEonsName();
+            }
         }
 
         if (! isGprsConsistant(gprsState, ss.getState())) {
@@ -1805,6 +1828,18 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
             // update restricted state notification
             notificationManager.notify(notificationId, mNotification);
         }
+    }
+
+    void checkEonsAndUpdateSpnDisplay() {
+       //Display Eons Name if Eons or Adapt property is enabled and Eons is
+       //not disabled in EF_SST/EF_UST
+       if ((!SystemProperties.getBoolean("persist.cust.tel.adapt",false) &&
+            !SystemProperties.getBoolean("persist.cust.tel.eons",false))  ||
+           (phone.mSIMRecords.getSstPlmnOplValue() == 0)) {
+           updateSpnDisplay();
+       } else {
+           phone.mSIMRecords.fetchAndDisplayEonsName();
+       }
     }
 
     private void log(String s) {
