@@ -1067,4 +1067,9 @@ public abstract class PhoneBase extends Handler implements Phone {
     public void setPowerSaveStatus(boolean value) {
         mModemPowerSaveStatus = value;
     }
+
+    public int getCspPlmnStatus() {
+        Log.e(LOG_TAG, "method getCspPlmnStatus is not supported in this radio technology");
+        return 0;
+    }
 }
