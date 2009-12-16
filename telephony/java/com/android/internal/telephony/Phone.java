@@ -1719,4 +1719,11 @@ public interface Phone {
      */
     boolean isModemPowerSave();
 
+    /**
+     * Get the status of "Restriction of menu options for manual PLMN selection"
+     * bit from EF_CSP data. This belongs to "Value Added Services Group".
+     * @return 1 if this bit is set, 0 if it is not set
+     */
+    int getCspPlmnStatus();
+
 }

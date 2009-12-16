@@ -83,6 +83,7 @@ public final class SIMRecords extends IccRecords {
      *  mCphsInfo[1] and mCphsInfo[2] is CPHS Service Table
      */
     private byte[] mCphsInfo = null;
+    int cspPlmn = 1;
 
     byte[] efMWIS = null;
     byte[] efCPHS_MWI =null;
@@ -152,6 +153,8 @@ public final class SIMRecords extends IccRecords {
     private static final int EVENT_GET_CFIS_DONE = 32;
     private static final int EVENT_GET_ALL_OPL_RECORDS_DONE = 33;
     private static final int EVENT_GET_ALL_PNN_RECORDS_DONE = 34;
+    private static final int EVENT_GET_CSP_CPHS_DONE = 35;
+    private static final int EVENT_AUTO_SELECT_DONE = 300;
 
     //EONS constants
     private static int EONS_NOT_INITIALIZED  = -1;
@@ -946,6 +949,34 @@ public final class SIMRecords extends IccRecords {
                 if (DBG) log("iCPHS: " + IccUtils.bytesToHexString(mCphsInfo));
             break;
 
+            case EVENT_GET_CSP_CPHS_DONE:
+                isRecordLoadResponse = true;
+
+                ar = (AsyncResult)msg.obj;
+
+                if (ar.exception != null) {
+                    Log.e(LOG_TAG,"Exception in fetching EF CSP data " + ar.exception);
+                    break;
+                }
+
+                data = (byte[])ar.result;
+
+                Log.i(LOG_TAG,"CSP Hex Data: " + IccUtils.bytesToHexString(data));
+                handleEfCspData(data);
+            break;
+
+            case EVENT_AUTO_SELECT_DONE:
+                isRecordLoadResponse = false;
+
+                ar = (AsyncResult) msg.obj;
+
+                if (ar.exception != null) {
+                    Log.e(LOG_TAG,"CSP: Automatic network selection: Fail");
+                } else {
+                    Log.i(LOG_TAG,"CSP: Automatic network selection: Success");
+                }
+            break;
+
             case EVENT_SET_MBDN_DONE:
                 isRecordLoadResponse = false;
                 ar = (AsyncResult)msg.obj;
@@ -1096,6 +1127,12 @@ public final class SIMRecords extends IccRecords {
                  Log.i(LOG_TAG,"EONS: SIM Refresh called for EF_SST");
                  phone.getIccFileHandler().loadEFTransparent(EF_SST,
                         obtainMessage(EVENT_GET_SST_DONE));
+                 recordsToLoad++;
+                 break;
+            case EF_CSP_CPHS:
+                 Log.i(LOG_TAG,"CSP: SIM Refresh called for EF_CSP_CPHS");
+                 phone.getIccFileHandler().loadEFTransparent(EF_CSP_CPHS,
+                        obtainMessage(EVENT_GET_CSP_CPHS_DONE));
                  recordsToLoad++;
                  break;
             default:
@@ -1340,6 +1377,13 @@ public final class SIMRecords extends IccRecords {
 
         iccFh.loadEFTransparent(EF_INFO_CPHS, obtainMessage(EVENT_GET_INFO_CPHS_DONE));
         recordsToLoad++;
+
+        //Fetch CSP data if ADAPT/EFCSP system property is set.
+        if (SystemProperties.getBoolean("persist.cust.tel.adapt",false) ||
+            SystemProperties.getBoolean("persist.cust.tel.efcsp.plmn",false)) {
+            iccFh.loadEFTransparent(EF_CSP_CPHS,obtainMessage(EVENT_GET_CSP_CPHS_DONE));
+            recordsToLoad++;
+        }
 
         // XXX should seek instead of examining them all
         if (false) { // XXX
@@ -2053,6 +2097,49 @@ public final class SIMRecords extends IccRecords {
 
     protected void log(String s) {
         Log.d(LOG_TAG, "[SIMRecords] " + s);
+    }
+
+    /**
+     * Return 1 if "Restriction of menu options for manual PLMN selection" bit is
+     * set in EF_CSP, otherwise return 0
+     */
+    public int getCspPlmn() {
+        return cspPlmn;
+    }
+
+    /**
+     * Process EF_CSP data and check whether Network Operator Selection menu item
+     * is to be Enabled/Disabled
+     */
+    private void handleEfCspData(byte[] data) {
+        //As per spec CPHS4_2.WW6, CPHS B.4.7.1, elementary file EF_CSP contians
+        //CPHS defined 18 bytes (i.e 9 service groups info) and additional
+        //data specific to operator.
+        int usedCspGroups = 13;
+        //This is the Servive group number of the service we need to check.
+        //This represents Value Added Services Group.
+        byte valueAddedServicesGroup = (byte)0xC0;
+        int i = 0;
+
+        for (i = 0;i < usedCspGroups;i++) {
+             if (data[2 * i] == valueAddedServicesGroup) {
+                 Log.i(LOG_TAG, "CSP: Sevice Group 0xC0, value " + data[(2 * i) + 1]);
+                 if ((data[(2 * i) + 1] & 0x80) == 0x80) {
+                     //Bit 8 is for Restriction of menu options for manual PLMN selection.
+                     //Network Operator Selection menu should be enabled.
+                     cspPlmn = 1;
+                 } else {
+                     cspPlmn = 0;
+                     //Network Operator Selection menu should be disabled.
+                     //Network Selection Mode should be set to Automatic.
+                     Message msg = obtainMessage(EVENT_AUTO_SELECT_DONE);
+                     phone.setNetworkSelectionModeAutomatic(msg);
+                 }
+                 return;
+             }
+        }
+
+        Log.w(LOG_TAG, "Value Added Service Group (0xC0), not found in EF CSP");
     }
 
 }
