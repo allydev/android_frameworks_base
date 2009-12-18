@@ -45,6 +45,7 @@ extern "C" {
 #include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
+#include <sys/system_properties.h>
 }
 
 // When you enable this, as well as DEBUG_REFS=1 and
@@ -216,6 +217,7 @@ CameraService::Client::Client(const sp<CameraService>& cameraService,
         const sp<ICameraClient>& cameraClient, pid_t clientPid)
 {
     int callingPid = getCallingPid();
+    char value[PROPERTY_VALUE_MAX];
     LOGD("Client::Client E (pid %d)", callingPid);
     mCameraService = cameraService;
     mCameraClient = cameraClient;
@@ -234,7 +236,11 @@ CameraService::Client::Client(const sp<CameraService>& cameraService,
                              CAMERA_MSG_FOCUS);
 
     mMediaPlayerClick = newMediaPlayer("/system/media/audio/ui/camera_click.ogg");
+    // Commenting Beep temporarily for camcorder to work
+    property_get("ro.product.device",value," ");
+    if(strcmp(value,"qsd8250_surf") || strcmp(value,"qsd8250_surf"))
     mMediaPlayerBeep = newMediaPlayer("/system/media/audio/ui/VideoRecord.ogg");
+
     mOverlayW = 0;
     mOverlayH = 0;
 
