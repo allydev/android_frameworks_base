@@ -61,26 +61,39 @@ static jint android_hardware_fmradio_FmReceiverJNI_acquireFdNative
         (JNIEnv* env, jobject thiz, jstring path)
 {
     int fd;
+    int i;
+    char value = 0;
+    int init_success = 0;
     jboolean isCopy;
     const char* radio_path = env->GetStringUTFChars(path, &isCopy);
     if(radio_path == NULL){
-        fd = open(RADIO, O_RDONLY, O_NONBLOCK);
-        if(fd < 0){
-          return FM_JNI_FAILURE;
-        }
-        return fd;
-    }
-    else{
-        fd = open(radio_path, O_RDONLY);
-    }
-    if(fd < 0){
         return FM_JNI_FAILURE;
-    }
-    if(isCopy == JNI_TRUE){
-        env->ReleaseStringUTFChars(path, radio_path);
     }
     property_set("ctl.start", "fm_dl");
     sleep(1);
+    for(i=0;i<3;i++) {
+        property_get("hw.fm.init", &value, NULL);
+	if(value == '1') {
+            init_success = 1;
+            break;
+        } else {
+            sleep(1);
+        }
+    }
+    LOGE("init_success:%d after %d seconds \n", init_success, i);
+    if(!init_success) {
+        property_set("ctl.stop", "fm_dl");
+        return FM_JNI_FAILURE;
+    }
+
+    fd = open(radio_path, O_RDONLY, O_NONBLOCK);
+    if(fd < 0){
+        return FM_JNI_FAILURE;
+    }
+
+    if(isCopy == JNI_TRUE){
+        env->ReleaseStringUTFChars(path, radio_path);
+    }
     return fd;
 }
 
@@ -88,6 +101,7 @@ static jint android_hardware_fmradio_FmReceiverJNI_acquireFdNative
 static jint android_hardware_fmradio_FmReceiverJNI_closeFdNative
     (JNIEnv * env, jobject thiz, jint fd)
 {
+    property_set("ctl.stop", "fm_dl");
     close(fd);
     return FM_JNI_SUCCESS;
 }
@@ -131,16 +145,20 @@ static jint android_hardware_fmradio_FmReceiverJNI_setControlNative
     (JNIEnv * env, jobject thiz, jint fd, jint id, jint value)
 {
     struct v4l2_control control;
+    int i;
     int err;
     LOGE("id(%x) value: %x\n", id, value);
     control.value = value;
 
     control.id = id;
-    err = ioctl(fd,VIDIOC_S_CTRL,&control);
-    if(err < 0){
-        return FM_JNI_FAILURE;
+    for(i=0;i<3;i++) {
+        err = ioctl(fd,VIDIOC_S_CTRL,&control);
+        if(err >= 0){
+            return FM_JNI_SUCCESS;
+        }
     }
-    return FM_JNI_SUCCESS;
+
+    return FM_JNI_FAILURE;
 }
 
 /* native interface */
@@ -305,7 +323,7 @@ static JNINativeMethod gMethods[] = {
             (void*)android_hardware_fmradio_FmReceiverJNI_acquireFdNative},
         { "closeFdNative", "(I)I",
             (void*)android_hardware_fmradio_FmReceiverJNI_closeFdNative},
-	{ "getFreqNative", "(I)I",
+        { "getFreqNative", "(I)I",
             (void*)android_hardware_fmradio_FmReceiverJNI_getFreqNative},
         { "setFreqNative", "(II)I",
             (void*)android_hardware_fmradio_FmReceiverJNI_setFreqNative},
