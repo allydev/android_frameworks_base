@@ -2493,9 +2493,7 @@ class PowerManagerService extends IPowerManager.Stub
                 } else {
                     // process the value immediately
                     mProximityPendingValue = -1;
-                    //Do not Change ProximityLocked to active, which will
-                    //disable all sceen activity and lock the screen.
-                    //proximityChangedLocked(active);
+                    proximityChangedLocked(active);
                 }
             }
         }
