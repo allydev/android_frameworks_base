@@ -266,8 +266,9 @@ public class ThumbnailUtil {
         String s;
         s = SystemProperties.get("ro.product.device");
         Log.e(TAG,s);
-        // Workaround for 7x30: disable thumbnail creation for video
-        if(!"msm7630_surf".equalsIgnoreCase(s)) {
+        // Workaround for 7x30 and 8k: disable thumbnail creation for video
+        if(false)
+        { //if(!"msm7630_surf".equalsIgnoreCase(s)) {
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
         try {
             retriever.setMode(MediaMetadataRetriever.MODE_CAPTURE_FRAME_ONLY);
