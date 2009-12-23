@@ -425,6 +425,9 @@ void CameraService::Client::disconnect()
     // Release the held overlay resources.
     if (mUseOverlay)
     {
+        /* Release previous overlay handle */
+	if(mSurface != NULL)
+            mSurface->releaseOverlay();
         mOverlayRef = 0;
     }
     mHardware.clear();
@@ -447,7 +450,7 @@ status_t CameraService::Client::setPreviewDisplay(const sp<ISurface>& surface)
     Mutex::Autolock surfaceLock(mSurfaceLock);
     result = NO_ERROR;
     // asBinder() is safe on NULL (returns NULL)
-    if (surface->asBinder() != mSurface->asBinder()) {
+    if ((surface->asBinder() != mSurface->asBinder()) && (surface != NULL)) {
         if (mSurface != 0) {
             LOGD("clearing old preview surface %p", mSurface.get());
             if ( !mUseOverlay)
@@ -569,6 +572,9 @@ status_t CameraService::Client::setOverlay()
         sp<Overlay> dummy;
         mHardware->setOverlay( dummy );
         mOverlayRef = 0;
+        /* Release previous overlay handle */
+        if(mSurface != NULL)
+	    mSurface->releaseOverlay();
     }
 
     status_t ret = NO_ERROR;
