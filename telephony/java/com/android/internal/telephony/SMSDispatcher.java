@@ -35,6 +35,7 @@ import android.os.AsyncResult;
 import android.os.Handler;
 import android.os.Message;
 import android.os.PowerManager;
+import android.os.SystemProperties;
 import android.provider.Telephony;
 import android.provider.Telephony.Sms.Intents;
 import android.provider.Settings;
@@ -161,6 +162,12 @@ public abstract class SMSDispatcher extends Handler {
     protected boolean mStorageAvailable = true;
     protected boolean mReportMemoryStatusPending = false;
 
+    /** List of messages awaiting to be sent.
+     * Message at index 0 is the one currently being sent
+     */
+    private ArrayList<SmsTracker> mPendingMessagesList;
+    private boolean mSyncronousSending;
+
     protected static int getNextConcatenatedRef() {
         sConcatenatedRef += 1;
         return sConcatenatedRef;
@@ -239,6 +246,11 @@ public abstract class SMSDispatcher extends Handler {
                 Settings.Secure.SMS_OUTGOING_CHECK_MAX_COUNT,
                 DEFAULT_SMS_MAX_COUNT);
         mCounter = new SmsCounter(max_count, check_period);
+
+        mPendingMessagesList = new ArrayList<SmsTracker>();
+        mSyncronousSending = SystemProperties.getBoolean(
+                TelephonyProperties.SMS_SYNCHRONOUS_SENDING,
+                false);
 
         mCm.setOnNewSMS(this, EVENT_NEW_SMS, null);
         mCm.setOnSmsStatus(this, EVENT_NEW_SMS_STATUS_REPORT, null);
@@ -476,6 +488,11 @@ public abstract class SMSDispatcher extends Handler {
                     sentIntent.send(Activity.RESULT_OK);
                 } catch (CanceledException ex) {}
             }
+
+            if (mSyncronousSending) {
+                processNextPendingMessage();
+            }
+
         } else {
             if (Config.LOGD) {
                 Log.d(TAG, "SMS send failed");
@@ -487,7 +504,7 @@ public abstract class SMSDispatcher extends Handler {
                 handleNotInService(ss, tracker);
             } else if ((((CommandException)(ar.exception)).getCommandError()
                     == CommandException.Error.SMS_FAIL_RETRY) &&
-                   tracker.mRetryCount < MAX_SEND_RETRIES) {
+                    tracker.mRetryCount < MAX_SEND_RETRIES) {
                 // Retry after a delay if needed.
                 // TODO: According to TS 23.040, 9.2.3.6, we should resend
                 //       with the same TP-MR as the failed message, and
@@ -515,6 +532,10 @@ public abstract class SMSDispatcher extends Handler {
                     tracker.mSentIntent.send(mContext, error, fillIn);
 
                 } catch (CanceledException ex) {}
+
+                if (mSyncronousSending) {
+                    processNextPendingMessage();
+                }
             }
         }
     }
@@ -798,7 +819,11 @@ public abstract class SMSDispatcher extends Handler {
         } else {
             String appName = getAppNameByIntent(sentIntent);
             if (mCounter.check(appName, SINGLE_PART_SMS)) {
-                sendSms(tracker);
+                if (mSyncronousSending) {
+                    enqueueMessageForSending(tracker);
+                } else {
+                    sendSms(tracker);
+                }
             } else {
                 sendMessage(obtainMessage(EVENT_POST_ALERT, tracker));
             }
@@ -972,27 +997,55 @@ public abstract class SMSDispatcher extends Handler {
             }
         };
 
-        private BroadcastReceiver mResultReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (intent.getAction().equals(Intent.ACTION_DEVICE_STORAGE_LOW)) {
-                    mStorageAvailable = false;
-                    mCm.reportSmsMemoryStatus(false, obtainMessage(EVENT_REPORT_MEMORY_STATUS_DONE));
-                } else if (intent.getAction().equals(Intent.ACTION_DEVICE_STORAGE_OK)) {
-                    mStorageAvailable = true;
-                    mCm.reportSmsMemoryStatus(true, obtainMessage(EVENT_REPORT_MEMORY_STATUS_DONE));
-                } else {
-                    // Assume the intent is one of the SMS receive intents that
-                    // was sent as an ordered broadcast.  Check result and ACK.
-                    int rc = getResultCode();
-                    boolean success = (rc == Activity.RESULT_OK)
-                                        || (rc == Intents.RESULT_SMS_HANDLED);
+    private BroadcastReceiver mResultReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(Intent.ACTION_DEVICE_STORAGE_LOW)) {
+                mStorageAvailable = false;
+                mCm.reportSmsMemoryStatus(false, obtainMessage(EVENT_REPORT_MEMORY_STATUS_DONE));
+            } else if (intent.getAction().equals(Intent.ACTION_DEVICE_STORAGE_OK)) {
+                mStorageAvailable = true;
+                mCm.reportSmsMemoryStatus(true, obtainMessage(EVENT_REPORT_MEMORY_STATUS_DONE));
+            } else {
+                // Assume the intent is one of the SMS receive intents that
+                // was sent as an ordered broadcast.  Check result and ACK.
+                int rc = getResultCode();
+                boolean success = (rc == Activity.RESULT_OK)
+                                    || (rc == Intents.RESULT_SMS_HANDLED);
 
-                    // For a multi-part message, this only ACKs the last part.
-                    // Previous parts were ACK'd as they were received.
-                    acknowledgeLastIncomingSms(success, rc, null);
-                }
+                // For a multi-part message, this only ACKs the last part.
+                // Previous parts were ACK'd as they were received.
+                acknowledgeLastIncomingSms(success, rc, null);
+            }
+        }
+    };
+
+    private void processNextPendingMessage() {
+        synchronized (mPendingMessagesList) {
+            // Remove sent message from the list
+            if (mPendingMessagesList.size() > 0) {
+                mPendingMessagesList.remove(0);
+                Log.d(TAG, "Removed message from pending queue. " + mPendingMessagesList.size() + " left");
+            } else {
+                Log.e(TAG, "Pending messages list consistency failure detected!");
             }
 
-        };
+            // If there are more messages waiting to be sent - send next one
+            if (mPendingMessagesList.size() > 0) {
+                sendSms(mPendingMessagesList.get(0));
+            }
+        }
+    }
+
+    private void enqueueMessageForSending(SmsTracker tracker) {
+        synchronized (mPendingMessagesList) {
+            mPendingMessagesList.add(tracker);
+            Log.d(TAG, "Added message to the pending queue. Queue size is " + mPendingMessagesList.size());
+            //Trigger sending only if there are no other messages being sent right now
+            //i.e. the queue was empty before we added this message to it
+            if (mPendingMessagesList.size() == 1) {
+                sendSms(tracker);
+            }
+        }
+    }
 }

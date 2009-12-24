@@ -147,4 +147,10 @@ public interface TelephonyProperties
      * when there is a radio technology change.
      */
     static final String PROPERTY_RESET_ON_RADIO_TECH_CHANGE = "persist.radio.reset_on_switch";
+
+    /**
+     * Indicates whether sms should be sent in synchronous manner.
+     * Type: boolean ( false = asynchronous, true = send next queued sms after
+     * making sure previous sms was sent) */
+    static final String SMS_SYNCHRONOUS_SENDING = "persist.radio.sms_sync_sending";
 }
