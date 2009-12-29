@@ -37,6 +37,7 @@ import android.telephony.SignalStrength;
 import android.text.TextUtils;
 import android.util.Log;
 import android.provider.Settings;
+import android.os.SystemClock;
 
 import static com.android.internal.telephony.CommandsInterface.CF_ACTION_DISABLE;
 import static com.android.internal.telephony.CommandsInterface.CF_ACTION_ENABLE;
@@ -1140,14 +1141,19 @@ public class GSMPhone extends PhoneBase {
     }
 
     public boolean enableDataConnectivity() {
-        Settings.System.putInt(getContext().getContentResolver(),
-                Settings.System.SOCKET_DATA_CALL_ENABLE, 1);
+        if (SystemProperties.getBoolean("persist.cust.tel.sdc.feature",false)) {
+            Settings.System.putInt(getContext().getContentResolver(),
+                    Settings.System.SOCKET_DATA_CALL_ENABLE, 1);
+            SystemClock.sleep(10);
+        }
         return mDataConnection.setDataEnabled(true);
     }
 
     public boolean disableDataConnectivity() {
-        Settings.System.putInt(getContext().getContentResolver(),
-                Settings.System.SOCKET_DATA_CALL_ENABLE, 0);
+        if (SystemProperties.getBoolean("persist.cust.tel.sdc.feature",false)) {
+            Settings.System.putInt(getContext().getContentResolver(),
+                    Settings.System.SOCKET_DATA_CALL_ENABLE, 0);
+        }
         return mDataConnection.setDataEnabled(false);
     }
 

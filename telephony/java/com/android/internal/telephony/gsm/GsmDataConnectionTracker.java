@@ -240,9 +240,18 @@ public final class GsmDataConnectionTracker extends DataConnectionTracker {
 
         createAllPdpList();
 
-        // The data call state is read during reboot.
-        dataEnabled[APN_DEFAULT_ID] = getSocketDataCallEnabled();
-        Log.d(LOG_TAG, "data enabled =" + dataEnabled[APN_DEFAULT_ID]);
+        if (SystemProperties.getBoolean("persist.cust.tel.sdc.feature",false)) {
+            // The data call state is read during reboot.
+            dataEnabled[APN_DEFAULT_ID] = getSocketDataCallEnabled();
+            mMasterDataEnabled = dataEnabled[APN_DEFAULT_ID];
+            Log.d(LOG_TAG, "data enabled =" + dataEnabled[APN_DEFAULT_ID]);
+        } else {
+            // This preference tells us 1) initial condition for "dataEnabled",
+            // and 2) whether the RIL will setup the baseband to auto-PS
+            // attach.
+            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(phone.getContext());
+            dataEnabled[APN_DEFAULT_ID] = !sp.getBoolean(GSMPhone.DATA_DISABLED_ON_BOOT_KEY, false);
+        }
         if (dataEnabled[APN_DEFAULT_ID]) {
             enabledCount++;
         }
@@ -434,9 +443,11 @@ public final class GsmDataConnectionTracker extends DataConnectionTracker {
             Log.i(LOG_TAG, "(fix?) We're on the simulator; assuming data is connected");
             return true;
         }
-        if (!getSocketDataCallEnabled()) {
-            Log.i(LOG_TAG, "Socket data call is disabled");
-            return false;
+        if (SystemProperties.getBoolean("persist.cust.tel.sdc.feature",false)) {
+            if (!getSocketDataCallEnabled()) {
+                Log.i(LOG_TAG, "Socket data call is disabled");
+                return false;
+            }
         }
 
         int gprsState = mGsmPhone.mSST.getCurrentGprsState();
