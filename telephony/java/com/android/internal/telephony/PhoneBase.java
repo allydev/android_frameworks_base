@@ -1032,4 +1032,32 @@ public abstract class PhoneBase extends Handler implements Phone {
         Log.e(LOG_TAG, "Error! " + name + "() in PhoneBase should not be " +
                 "called, CDMAPhone inactive.");
     }
+
+    public int getPhoneTypeFromNetworkType() {
+
+        int preferredNetworkMode = RILConstants.PREFERRED_NETWORK_MODE;
+        Context context = getContext();
+        int networkMode = Settings.Secure.getInt(context.getContentResolver(),
+                Settings.Secure.PREFERRED_NETWORK_MODE, preferredNetworkMode);
+
+        if ((networkMode == RILConstants.NETWORK_MODE_CDMA)
+                || (networkMode == RILConstants.NETWORK_MODE_CDMA_NO_EVDO)
+                || (networkMode == RILConstants.NETWORK_MODE_EVDO_NO_CDMA)) {
+            return RILConstants.CDMA_PHONE;
+        } else if ((networkMode == RILConstants.NETWORK_MODE_WCDMA_PREF)
+                || (networkMode == RILConstants.NETWORK_MODE_GSM_ONLY)
+                || (networkMode == RILConstants.NETWORK_MODE_WCDMA_ONLY)
+                || (networkMode == RILConstants.NETWORK_MODE_GSM_UMTS)) {
+            return RILConstants.GSM_PHONE;
+        } else if (networkMode == RILConstants.NETWORK_MODE_GLOBAL) {
+            if (getPhoneType() == Phone.PHONE_TYPE_CDMA) {
+                return RILConstants.CDMA_PHONE;
+            } else if (getPhoneType() == Phone.PHONE_TYPE_GSM) {
+                return RILConstants.GSM_PHONE;
+            }
+        }
+
+        return RILConstants.NO_PHONE;
+    }
+
 }
