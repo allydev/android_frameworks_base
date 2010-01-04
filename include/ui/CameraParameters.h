@@ -198,6 +198,15 @@ public:
     //Lens Shading Values
     static const char KEY_LENSSHADE[] ;
     static const char KEY_SUPPORTED_LENSSHADE_MODES[] ;
+    //Sharpness
+    static const char KEY_SHARPNESS[];
+    static const char KEY_MAX_SHARPNESS[];
+    //Contrast
+    static const char KEY_CONTRAST[];
+    static const char KEY_MAX_CONTRAST[];
+    //Saturation
+    static const char KEY_SATURATION[];
+    static const char KEY_MAX_SATURATION[];
 
         // Values for white balance settings.
     static const char WHITE_BALANCE_AUTO[];
