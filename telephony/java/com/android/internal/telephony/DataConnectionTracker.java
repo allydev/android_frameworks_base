@@ -26,6 +26,7 @@ import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
 import android.text.TextUtils;
 import android.util.Log;
+import android.os.SystemProperties;
 
 import java.util.ArrayList;
 
@@ -561,8 +562,10 @@ public abstract class DataConnectionTracker extends Handler {
         if (mMasterDataEnabled != enable) {
             mMasterDataEnabled = enable;
             if (enable) {
-                if (!isEnabled(APN_DEFAULT_ID)) {
-                    setEnabled(APN_DEFAULT_ID, true);
+                if (SystemProperties.getBoolean("persist.cust.tel.sdc.feature",false)) {
+                    if (!isEnabled(APN_DEFAULT_ID)) {
+                        setEnabled(APN_DEFAULT_ID, true);
+                    }
                 }
                 mRetryMgr.resetRetryCount();
                 onTrySetupData(Phone.REASON_DATA_ENABLED);
