@@ -305,8 +305,9 @@ public class CdmaDataConnection extends DataConnection {
                             + " DNS2=" + dnsServers[1]);
                     }
 
-                    if (NULL_IP.equals(dnsServers[0]) && NULL_IP.equals(dnsServers[1])
-                                        && !((CDMAPhone) phone).isDnsCheckDisabled()) {
+                    if (((NULL_IP.equals(dnsServers[0]) && NULL_IP.equals(dnsServers[1])) ||
+                            ((dnsServers[0].equals("")) && (dnsServers[1].equals(""))))
+                            && !((CDMAPhone)phone).isDnsCheckDisabled()) {
                         // Work around a race condition where QMI does not fill in DNS:
                         // Deactivate PDP and let DataConnectionTracker retry.
                         EventLog.writeEvent(TelephonyEventLog.EVENT_LOG_BAD_DNS_ADDRESS,
