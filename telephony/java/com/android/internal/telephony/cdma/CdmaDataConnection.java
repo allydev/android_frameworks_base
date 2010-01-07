@@ -121,9 +121,10 @@ public class CdmaDataConnection extends DataConnection {
 
     @Override
     protected boolean isDnsOk(String[] domainNameServers) {
-        if ((NULL_IP.equals(domainNameServers[0])
-                && NULL_IP.equals(domainNameServers[1])
-                && !((CDMAPhone) phone).isDnsCheckDisabled())) {
+        if (((NULL_IP.equals(domainNameServers[0])
+                && NULL_IP.equals(domainNameServers[1])) ||
+            ((domainNameServers[0].equals("")) && (domainNameServers[1].equals(""))))
+                && !((CDMAPhone) phone).isDnsCheckDisabled()) {
             return false;
         } else {
             return true;
@@ -131,6 +132,7 @@ public class CdmaDataConnection extends DataConnection {
     }
 
     @Override
+
     protected void log(String s) {
         Log.d(LOG_TAG, "[" + getName() + "] " + s);
     }
