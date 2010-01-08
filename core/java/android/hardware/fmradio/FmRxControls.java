@@ -179,15 +179,15 @@ class FmRxControls
          int freq = 0;
          int i=0;
          int station_num;
-         double real_freq = 0;
+         float real_freq = 0;
          int [] stationList;
          byte [] sList = new byte[100];
          int tmpFreqByte1=0;
          int tmpFreqByte2=0;
-         double lowBand;
+         float lowBand;
 
 
-         lowBand = (double) (FmReceiverJNI.getLowerBandNative(fd) / 1000.00);
+         lowBand = (float) (FmReceiverJNI.getLowerBandNative(fd) / 1000.00);
          Log.d(TAG, "lowBand: " + lowBand);
          FmReceiverJNI.getBufferNative(fd, sList, 0);
 
@@ -206,7 +206,7 @@ class FmRxControls
             freq = (tmpFreqByte1 & 0x03) << 8;
             freq |= tmpFreqByte2;
             Log.d(TAG, " freq: " + freq);
-            real_freq  = (freq * 0.05) + lowBand;//tuner.rangelow / FREQ_MUL;
+            real_freq  = (float)(freq * 0.05) + lowBand;//tuner.rangelow / FREQ_MUL;
             Log.d(TAG, " real_freq: " + real_freq);
             stationList[i] = (int)(real_freq*1000);
             Log.d(TAG, " stationList: " + stationList[i]);
