@@ -55,6 +55,7 @@ import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.RetryManager;
 import com.android.internal.telephony.TelephonyEventLog;
 import com.android.internal.telephony.DataConnection.FailCause;
+import com.android.internal.telephony.RILConstants;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -730,7 +731,18 @@ public final class GsmDataConnectionTracker extends DataConnectionTracker {
                         TelephonyManager.getDefault().getNetworkType());
                 EventLog.writeEvent(TelephonyEventLog.EVENT_LOG_PDP_NETWORK_DROP, val);
 
-                cleanUpConnection(true, null);
+                // Check whether network mode is GSM , If network mode is
+                // GSM tear down the data call and retry for new data call.
+                // Else if network mode is CDMA tear down the data call
+                // and do not retry setup data call. In order to avoid
+                // retrying the data call pass reason as
+                // RADIO_TECHNOLOGY_CHANGED
+                if (mGsmPhone.getPhoneTypeFromNetworkType() == RILConstants.GSM_PHONE) {
+                    cleanUpConnection(true, null);
+                } else {
+                    Log.i(LOG_TAG, "Data reconnect disabled due to radio technology changed");
+                    cleanUpConnection(true, Phone.REASON_RADIO_TECHNOLOGY_CHANGED);
+                }
                 return;
             } else if (!pdpStatesHasActiveCID(pdpStates, cidActive)) {
                 // Here, we only consider this authoritative if we asked for the
@@ -753,7 +765,18 @@ public final class GsmDataConnectionTracker extends DataConnectionTracker {
                             TelephonyManager.getDefault().getNetworkType());
                     EventLog.writeEvent(TelephonyEventLog.EVENT_LOG_PDP_NETWORK_DROP, val);
 
-                    cleanUpConnection(true, null);
+                    // Check whether network mode is GSM , If network mode is
+                    // GSM tear down the data call and retry for new data call.
+                    // Else if network mode is CDMA tear down the data call
+                    // and do not retry setup data call. In order to avoid
+                    // retrying the data call pass reason as
+                    // RADIO_TECHNOLOGY_CHANGED
+                    if (mGsmPhone.getPhoneTypeFromNetworkType() == RILConstants.GSM_PHONE) {
+                        cleanUpConnection(true, null);
+                    } else {
+                        Log.i(LOG_TAG, "Data reconnect disabled due to radio technology changed");
+                        cleanUpConnection(true, Phone.REASON_RADIO_TECHNOLOGY_CHANGED);
+                    }
                 }
             }
         }
@@ -967,7 +990,8 @@ public final class GsmDataConnectionTracker extends DataConnectionTracker {
     private boolean retryAfterDisconnected(String reason) {
         boolean retry = true;
 
-        if ( Phone.REASON_RADIO_TURNED_OFF.equals(reason) ) {
+        if ((Phone.REASON_RADIO_TURNED_OFF.equals(reason))
+                || (Phone.REASON_RADIO_TECHNOLOGY_CHANGED.equals(reason))) {
             retry = false;
         }
         return retry;
