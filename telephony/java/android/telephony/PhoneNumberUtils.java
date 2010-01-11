@@ -1250,7 +1250,16 @@ public class PhoneNumberUtils
         number = extractNetworkPortion(number);
 
         // retrieve the list of emergency numbers
-        String numbers = SystemProperties.get("persist.ril.ecclist");
+
+        // Check the ril.ecclist property which will be populated by RIL with the
+        // emergency numbers obtained from SIM, NV or Network after boot up.
+        // If that is empty, check the ro.ril.ecclist property to see if there
+        // are pre-configured list of emergency numbers.
+        String numbers = SystemProperties.get("ril.ecclist");
+        if (TextUtils.isEmpty(numbers)) {
+            log("IsEmergencyNumber: ril.ecclist is empty. Using ro.ril.ecclist");
+            numbers = SystemProperties.get("ro.ril.ecclist");
+        }
 
         if (!TextUtils.isEmpty(numbers)) {
             // searches through the comma-separated list for a match,
