@@ -78,10 +78,12 @@ static void initSocketFromFdNative(JNIEnv *env, jobject obj, jint fd) {
         startBluetoothSocketEventLoop();
     }
 
-    // TODO: put in a bluetooth socket counter--check on close and teardown the event loop
-    //       in destroyNative if everyone is off of it.
-    return;
-#else
+    if (-1 == fd) {
+        // TODO: put in a bluetooth socket counter--check on close and teardown the event loop
+        //       in destroyNative if everyone is off of it.
+        return;
+    }
+#endif /* USE_BM3_BLUETOOTH */
     struct asocket *s = asocket_init(fd);
 
     if (!s) {
@@ -93,7 +95,6 @@ static void initSocketFromFdNative(JNIEnv *env, jobject obj, jint fd) {
     env->SetIntField(obj, field_mSocketData, (jint)s);
 
     return;
-#endif /* USE_BM3_BLUETOOTH */
 #endif
     jniThrowIOException(env, ENOSYS);
 }
@@ -110,7 +111,7 @@ static void initSocketNative(JNIEnv *env, jobject obj) {
         return;
     }
 
-    int fd = 0; /* Bogus value for now--for BM3 we initialize the socket on connect/bind */
+    int fd = -1; /* Bogus value for now--for BM3 we initialize the socket on connect/bind */
 #else
     int fd;
     int lm = 0;
