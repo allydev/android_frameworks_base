@@ -23,6 +23,7 @@ import com.android.internal.util.HierarchicalStateMachine;
 
 import android.os.AsyncResult;
 import android.os.Message;
+import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.util.EventLog;
 
@@ -391,6 +392,9 @@ public abstract class DataConnection extends HierarchicalStateMachine {
      * @return SetupResult.
      */
     private SetupResult onSetupConnectionCompleted(AsyncResult ar) {
+
+        final int MAX_RETRY_COUNT = 5;
+
         SetupResult result;
         String[] response = ((String[]) ar.result);
         ConnectionParams cp = (ConnectionParams) ar.userObj;
@@ -423,8 +427,30 @@ public abstract class DataConnection extends HierarchicalStateMachine {
                     ipAddress = response[2];
                     String prefix = "net." + interfaceName + ".";
                     gatewayAddress = SystemProperties.get(prefix + "gw");
-                    dnsServers[0] = SystemProperties.get(prefix + "dns1");
-                    dnsServers[1] = SystemProperties.get(prefix + "dns2");
+                    // Though DHCP acquires the DNS address , there may be some
+                    // delay in the property_set.
+                    // Mean time if any process try to do property_get . It will
+                    // get empty string.
+                    // To over come the race condition , following
+                    // implementation done (i.e) retry property_get after a
+                    // delay when its failed
+                    int retry_Counter = 0;
+                    while (retry_Counter < MAX_RETRY_COUNT) {
+
+                        dnsServers[0] = SystemProperties.get(prefix + "dns1");
+                        dnsServers[1] = SystemProperties.get(prefix + "dns2");
+
+                        if (!(dnsServers[0].equals("") && dnsServers[1].equals(""))) {
+                            break;
+                        }
+
+                        log("Retry DNS address after a delay ( Retry Count : " + retry_Counter
+                                + " )");
+                        retry_Counter++;
+                        SystemClock.sleep(20);
+                    }
+
+
                     if (DBG) {
                         log("interface=" + interfaceName + " ipAddress=" + ipAddress
                             + " gateway=" + gatewayAddress + " DNS1=" + dnsServers[0]
