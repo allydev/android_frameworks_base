@@ -41,6 +41,32 @@
 namespace android {
 
 /*
+ * Set the Secure time.  This only works when running with CAP_SYS_TIME Capability.
+ */
+int setCurrentSecureTime(const time_t t)
+{
+#if HAVE_ANDROID_OS
+    struct rtc_time rtc_tm;
+    int fd,res;
+
+    fd = open("/dev/rtc1", O_RDWR);
+    if(fd < 0) {
+        LOGW("Unable to open /dev/rtc1: %s\n", strerror(errno));
+        return -1;
+    }
+    localtime_r(&t,(struct tm*)&rtc_tm);
+    res = ioctl(fd,RTC_SET_TIME,&rtc_tm);
+    if(res < 0) {
+        LOGW("Unable to set /dev/rtc1 to : %s\n", strerror(errno));
+    }
+    close(fd);
+    return res;
+#else
+    return -1;
+#endif
+}
+
+/*
  * Set the current time.  This only works when running as root.
  */
 int setCurrentTimeMillis(int64_t millis)
@@ -80,6 +106,9 @@ int setCurrentTimeMillis(int64_t millis)
         ret = -1;
     }
     close(fd);
+
+    //Set the secure time
+    setCurrentSecureTime((const time_t) tv.tv_sec);
 #else
     if (settimeofday(&tv, NULL) != 0) {
         LOGW("Unable to set clock to %d.%d: %s\n",
