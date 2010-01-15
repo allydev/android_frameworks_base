@@ -497,6 +497,67 @@ public class TelephonyManager {
         }
     }
 
+    /** {@hide} */
+    public String getActiveInterfaceName(String apnType) {
+        try{
+            ITelephony telephony = getITelephony();
+            if (telephony != null) {
+                return telephony.getActiveInterfaceName(apnType);
+            } else {
+                // This can happen when the ITelephony interface is not up yet.
+                return null;
+            }
+        } catch(RemoteException ex) {
+            // This shouldn't happen in the normal case
+            return null;
+        } catch (NullPointerException ex) {
+            // This could happen before phone restarts due to crashing
+            return null;
+        }
+    }
+
+
+    /** {@hide} */
+    public String getActiveIpAddress(String apnType) {
+        try{
+            ITelephony telephony = getITelephony();
+            if (telephony != null) {
+                return telephony.getActiveIpAddress(apnType);
+            } else {
+                // This can happen when the ITelephony interface is not up yet.
+                return null;
+            }
+        } catch(RemoteException ex) {
+            // This shouldn't happen in the normal case
+            return null;
+        } catch (NullPointerException ex) {
+            // This could happen before phone restarts due to crashing
+            return null;
+        }
+    }
+
+    /** {@hide} */
+    public String getActiveGateway(String apnType) {
+        try{
+            ITelephony telephony = getITelephony();
+            if (telephony != null) {
+                return telephony.getActiveGateway(apnType);
+            } else {
+                // This can happen when the ITelephony interface is not up yet.
+                return null;
+            }
+        } catch(RemoteException ex) {
+            // This shouldn't happen in the normal case
+            return null;
+        } catch (NullPointerException ex) {
+            // This could happen before phone restarts due to crashing
+            return null;
+        }
+    }
+
+
+
+
     /**
      * Returns a constant indicating the state of the
      * device SIM card.
