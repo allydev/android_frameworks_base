@@ -450,7 +450,7 @@ status_t CameraService::Client::setPreviewDisplay(const sp<ISurface>& surface)
     Mutex::Autolock surfaceLock(mSurfaceLock);
     result = NO_ERROR;
     // asBinder() is safe on NULL (returns NULL)
-    if ((surface->asBinder() != mSurface->asBinder()) && (surface != NULL)) {
+    if ( surface->asBinder() != mSurface->asBinder() ) {
         if (mSurface != 0) {
             LOGD("clearing old preview surface %p", mSurface.get());
             if ( !mUseOverlay)
@@ -470,7 +470,8 @@ status_t CameraService::Client::setPreviewDisplay(const sp<ISurface>& surface)
         // buffers now.
         if (mHardware->previewEnabled() || mUseOverlay ) {
             if (mUseOverlay) {
-                result = setOverlay();
+                if( mSurface != NULL)
+                    result = setOverlay();
             } else if (mSurface != 0) {
                 result = registerPreviewBuffers();
             }
