@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (c) 2010, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -935,12 +936,32 @@ public class StatusBarPolicy {
             final String lockedReason = intent.getStringExtra(IccCard.INTENT_KEY_LOCKED_REASON);
             if (IccCard.INTENT_VALUE_LOCKED_ON_PIN.equals(lockedReason)) {
                 mSimState = IccCard.State.PIN_REQUIRED;
-            }
-            else if (IccCard.INTENT_VALUE_LOCKED_ON_PUK.equals(lockedReason)) {
+            } else if (IccCard.INTENT_VALUE_LOCKED_ON_PUK.equals(lockedReason)) {
                 mSimState = IccCard.State.PUK_REQUIRED;
-            }
-            else {
+            } else if(IccCard.INTENT_VALUE_LOCKED_NETWORK.equals(lockedReason)) {
                 mSimState = IccCard.State.NETWORK_LOCKED;
+            } else if(IccCard.INTENT_VALUE_LOCKED_NETWORK_SUBSET.equals(lockedReason)) {
+                mSimState = IccCard.State.SIM_NETWORK_SUBSET_LOCKED;
+            } else if(IccCard.INTENT_VALUE_LOCKED_CORPORATE.equals(lockedReason)) {
+                mSimState = IccCard.State.SIM_CORPORATE_LOCKED;
+            } else if(IccCard.INTENT_VALUE_LOCKED_SERVICE_PROVIDER.equals(lockedReason)) {
+                mSimState = IccCard.State.SIM_SERVICE_PROVIDER_LOCKED;
+            } else if(IccCard.INTENT_VALUE_LOCKED_SIM.equals(lockedReason)) {
+                mSimState = IccCard.State.SIM_SIM_LOCKED;
+            } else if(IccCard.INTENT_VALUE_LOCKED_RUIM_NETWORK1.equals(lockedReason)) {
+                mSimState = IccCard.State.RUIM_NETWORK1_LOCKED;
+            } else if(IccCard.INTENT_VALUE_LOCKED_RUIM_NETWORK2.equals(lockedReason)) {
+                mSimState = IccCard.State.RUIM_NETWORK2_LOCKED;
+            } else if(IccCard.INTENT_VALUE_LOCKED_RUIM_HRPD.equals(lockedReason)) {
+                mSimState = IccCard.State.RUIM_HRPD_LOCKED;
+            } else if(IccCard.INTENT_VALUE_LOCKED_RUIM_CORPORATE.equals(lockedReason)) {
+                mSimState = IccCard.State.RUIM_CORPORATE_LOCKED;
+            } else if(IccCard.INTENT_VALUE_LOCKED_RUIM_SERVICE_PROVIDER.equals(lockedReason)) {
+                mSimState = IccCard.State.RUIM_SERVICE_PROVIDER_LOCKED;
+            } else if(IccCard.INTENT_VALUE_LOCKED_RUIM_RUIM.equals(lockedReason)) {
+                mSimState = IccCard.State.RUIM_RUIM_LOCKED;
+            } else {
+                mSimState = IccCard.State.UNKNOWN;
             }
         } else {
             mSimState = IccCard.State.UNKNOWN;
