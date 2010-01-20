@@ -571,8 +571,14 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
     public void updateSpnDisplay() {
         int rule = phone.mSIMRecords.getDisplayRule(ss.getOperatorNumeric());
         String pnn = phone.mSIMRecords.getPnnLongName();
-        String spn = phone.mSIMRecords.getServiceProviderName();
+        String spn = null;
         String plmn = ss.getOperatorAlphaLong();
+
+        //SPN name should be displayed only when the UE is registered to a
+        //Network.
+        if (ss.getState() == ServiceState.STATE_IN_SERVICE) {
+            spn = phone.mSIMRecords.getServiceProviderName();
+        }
 
         if ((phone.mSIMRecords.isEonsEnabled()) && pnn != null) {
             plmn = pnn;
