@@ -30,6 +30,7 @@ import android.os.RegistrantList;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.provider.Settings;
+import android.provider.Settings.Secure;
 import android.provider.Settings.SettingNotFoundException;
 import android.provider.Telephony.Intents;
 import android.telephony.ServiceState;
@@ -61,6 +62,11 @@ import java.util.TimeZone;
  */
 final class CdmaServiceStateTracker extends ServiceStateTracker {
     static final String LOG_TAG = "CDMA";
+
+    // Used for CDMA subscription mode
+    private static final int CDMA_SUBSCRIPTION_RUIM = 0;
+    private static final int CDMA_SUBSCRIPTION_NV = 1;
+
 
     CDMAPhone phone;
     CdmaCellLocation cellLoc;
@@ -181,6 +187,7 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
         cm.registerForRUIMReady(this, EVENT_RUIM_READY, null);
 
         cm.registerForNVReady(this, EVENT_NV_READY, null);
+        cm.registerForRUIMLockedOrAbsent(this, EVENT_RUIM_LOCKED_OR_ABSENT, null);
         phone.registerForEriFileLoaded(this, EVENT_ERI_FILE_LOADED, null);
         cm.registerForCdmaOtaProvision(this,EVENT_OTA_PROVISION_STATUS_CHANGE, null);
 
@@ -286,6 +293,17 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
         cdmaForSubscriptionInfoReadyRegistrants.remove(h);
     }
 
+    /**
+     * Save current source of cdma subscription
+     * @param source - 1 for NV, 0 for RUIM
+     */
+    private void saveCdmaSubscriptionSource(int source) {
+        Log.d(LOG_TAG, "Storing cdma subscription source: " + source);
+        Secure.putInt(phone.getContext().getContentResolver(),
+                Secure.CDMA_SUBSCRIPTION_MODE,
+                source );
+    }
+
     @Override
     public void handleMessage (Message msg) {
         AsyncResult ar;
@@ -300,6 +318,7 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
             // The RUIM is now ready i.e if it was locked it has been
             // unlocked. At this stage, the radio is already powered on.
             isSubscriptionFromRuim = true;
+            saveCdmaSubscriptionSource(CDMA_SUBSCRIPTION_RUIM);
             if (mNeedToRegForRuimLoaded) {
                 phone.mRuimRecords.registerForRecordsLoaded(this,
                         EVENT_RUIM_RECORDS_LOADED, null);
@@ -318,6 +337,7 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
 
         case EVENT_NV_READY:
             isSubscriptionFromRuim = false;
+            saveCdmaSubscriptionSource(CDMA_SUBSCRIPTION_NV);
             // For Non-RUIM phones, the subscription information is stored in
             // Non Volatile. Here when Non-Volatile is ready, we can poll the CDMA
             // subscription info.
@@ -325,6 +345,10 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
             pollState();
             // Signal strength polling stops when radio is off.
             queueNextSignalStrengthPoll();
+            break;
+
+        case EVENT_RUIM_LOCKED_OR_ABSENT:
+            saveCdmaSubscriptionSource(CDMA_SUBSCRIPTION_RUIM);
             break;
 
         case EVENT_RADIO_STATE_CHANGED:
