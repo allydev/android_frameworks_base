@@ -18,6 +18,9 @@ package android.net;
 
 import android.net.NetworkInfo;
 import android.os.IBinder;
+import android.net.LinkRequirements;
+import android.net.LinkInfo;
+import android.os.Bundle;
 
 /**
  * Interface that answers queries about, and allows changing, the
@@ -50,4 +53,28 @@ interface IConnectivityManager
     boolean getBackgroundDataSetting();
 
     void setBackgroundDataSetting(boolean allowBackgroundData);
+
+    boolean getLink(int role,
+                    in LinkRequirements linkReqs,
+                    int mPid,
+                    IBinder listener);
+
+    boolean reportLinkSatisfaction(int role,
+                                   int mPid,
+                                   in LinkInfo info,
+                                   boolean isSatisfied,
+                                   boolean isNotifyBetterCon);
+
+    boolean releaseLink(int role,int mPid);
+
+    boolean switchLink(int role,
+                       int mPid,
+                       in LinkInfo info,
+                       boolean isSwitch);
+
+    boolean rejectSwitch(int role,
+                         int mPid,
+                         in LinkInfo info,
+                         boolean isSwitch);
+
 }
