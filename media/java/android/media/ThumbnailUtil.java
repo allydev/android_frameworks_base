@@ -33,7 +33,7 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.media.MediaMetadataRetriever;
-import android.os.SystemProperties;
+
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
@@ -263,11 +263,6 @@ public class ThumbnailUtil {
      */
     public static Bitmap createVideoThumbnail(String filePath) {
         Bitmap bitmap = null;
-        String s;
-        s = SystemProperties.get("ro.product.device");
-        Log.e(TAG,s);
-        // Workaround for 7x30: disable thumbnail creation for video
-        if(!"msm7630_surf".equalsIgnoreCase(s)) {
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
         try {
             retriever.setMode(MediaMetadataRetriever.MODE_CAPTURE_FRAME_ONLY);
@@ -284,7 +279,6 @@ public class ThumbnailUtil {
                 // Ignore failures while cleaning up.
             }
         }
-        } // end workaround for 7x30
         return bitmap;
     }
 
