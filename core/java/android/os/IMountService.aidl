@@ -75,4 +75,9 @@ interface IMountService
      * when a UMS host is detected.
      */
     void setAutoStartUms(boolean value);
+
+    /**
+     * Get list of mount points.
+     */
+    String getMountPointList();
 }
