@@ -3,6 +3,7 @@
 /* //device/apps/common/AndroidManifest.xml
 **
 ** Copyright 2006, The Android Open Source Project
+** Copyright (c) 2009-2010, Code Aurora Forum. All rights reserved.
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -1199,6 +1200,13 @@
         <receiver android:name="com.android.server.BootReceiver" >
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name="com.android.server.FileManagerLauncher" >
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_MOUNTED" />
+                <data android:scheme="file" />
             </intent-filter>
         </receiver>
 

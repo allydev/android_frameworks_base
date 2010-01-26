@@ -1,5 +1,6 @@
 //
 // Copyright 2005 The Android Open Source Project
+// Copyright (c) 2009-2010, Code Aurora Forum. All rights reserved.
 //
 // Handle events, like key input and vsync.
 //
@@ -619,6 +620,16 @@ int EventHub::open_device(const char *deviceName)
     AutoMutex _l(mLock);
     
     fd = open(deviceName, O_RDWR);
+    /* Input device open before it is created
+     * USB event is received before
+     * input device is created by the input subsystem
+     * Retry after 10 ms delay
+     */
+    int count = 10;
+    while(fd < 0 && (errno == EACCES) && count--) {
+        usleep(10000);
+        fd = open(deviceName, O_RDWR);
+    }
     if(fd < 0) {
         LOGE("could not open %s, %s\n", deviceName, strerror(errno));
         return -1;

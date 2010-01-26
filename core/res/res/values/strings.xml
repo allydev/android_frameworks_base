@@ -3,6 +3,7 @@
 /* //device/apps/common/assets/res/any/strings.xml
 **
 ** Copyright 2006, The Android Open Source Project
+** Copyright (c) 2009-2010, Code Aurora Forum. All rights reserved.
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -1981,6 +1982,27 @@
     <!-- See USB_STORAGE. This is the message. -->
     <string name="usb_storage_stop_notification_message">Select to turn off USB storage.</string>
 
+    <!-- See USB_STORAGE.  USB_STORAGE_DIALOG:  After the user selects the notification, a dialog is shown asking if he wants to mount.  This is the title. -->
+    <string name="usb_storage_connect_title">USB Mass Storage connected</string>
+    <!-- See USB_STORAGE.    This is the message. -->
+    <string name="usb_storage_connect_message">An USB Mass Storage device is connected to your system.</string>
+
+    <!-- See USB_STORAGE.  Shows USB disconnected message -->
+    <string name="usb_storage_disconnect_title">USB disconnected</string>
+    <!-- See USB_STORAGE.    This is the message. -->
+    <string name="usb_storage_disconnect_message">USB is disconnected from your system.</string>
+
+    <!-- Shown when USB Storage has been safely removed -->
+    <string name="usb_storage_safe_unmount_notification_title">USB Mass Storage safe to remove</string>
+    <string name="usb_storage_safe_unmount_notification_message">The USB Mass Storage can now be safely removed.</string>
+
+    <!-- Shown when USB Storage is unsafely removed -->
+    <string name="usb_storage_badremoval_notification_title">USB mass storage unexpectedly removed</string>
+    <string name="usb_storage_badremoval_notification_message">Unmount USB Mass Storage before removing to avoid data loss.</string>
+
+    <!-- Shown when USB Storage is unmountable (corrupt)) -->
+    <string name="usb_srorage_unmountable_title">Mount failed USB Mass Storage is unusable </string>
+
     <!-- USB storage stop dialog strings -->
     <!-- This is the label for the activity, and should never be visible to the user. -->
     <!-- See USB_STORAGE_STOP.  USB_STORAGE_STOP_DIALOG:  After the user selects the notification, a dialog is shown asking if he wants to stop usb storage.  This is the title. -->
@@ -1993,7 +2015,8 @@
     <string name="usb_storage_stop_button_unmount">Cancel</string>
     <!-- See USB_STORAGE_STOP_DIALOG.  If there was an error stopping, this is the text. -->
     <string name="usb_storage_stop_error_message">We\'ve encountered a problem turning off USB storage. Check to make sure you have unmounted the USB host, then try again.</string>
-
+    <string name="usb_speed_mismatch_title">USB device speed mismatch</string>
+    <string name="usb_speed_mismatch_message">device connected to slower speed port</string>
     <!-- External media format dialog strings -->
     <!-- This is the label for the activity, and should never be visible to the user. -->
     <!-- See EXTMEDIA_FORMAT.  EXTMEDIA_FORMAT_DIALOG:  After the user selects the notification, a dialog is shown asking if he wants to format the SD card.  This is the title. -->

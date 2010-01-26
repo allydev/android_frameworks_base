@@ -50,6 +50,7 @@ final class MountListener implements Runnable {
     private static final String VOLD_CMD_MOUNT_VOLUME = "mount_volume:";
     private static final String VOLD_CMD_EJECT_MEDIA = "eject_media:";
     private static final String VOLD_CMD_FORMAT_MEDIA = "format_media:";
+    private static final String VOLD_CMD_MOUNTED_VOLUMES = "mounted_volumes:";
 
     // vold events
     private static final String VOLD_EVT_UMS_ENABLED = "ums_enabled";
@@ -67,6 +68,7 @@ final class MountListener implements Runnable {
     private static final String VOLD_EVT_CHECKING = "volume_checking:";
     private static final String VOLD_EVT_NOFS = "volume_nofs:";
     private static final String VOLD_EVT_EJECTING = "volume_ejecting:";
+    private static final String VOLD_EVT_SPEED_MISMATCH = "speed_mismatch:";
 
     /**
      * MountService that handles events received from the vol service daemon
@@ -142,7 +144,9 @@ final class MountListener implements Runnable {
             mService.notifyMediaUnmountable(path);
         } else if (event.startsWith(VOLD_EVT_EJECTING)) {
             mService.notifyMediaEject(path);
-        }    
+        } else if (event.startsWith(VOLD_EVT_SPEED_MISMATCH)) {
+            mService.notifySpeedMismatch(path);
+        }
     }
     
     /**
@@ -199,11 +203,18 @@ final class MountListener implements Runnable {
             InputStream inputStream = socket.getInputStream();
             mOutputStream = socket.getOutputStream();
 
-            byte[] buffer = new byte[100];
+            /*
+             * All available messages in the socket are read into the buffer.
+             * If Socket contians more number of messages whose total size
+             * is greater than buffer size then last message may read partially.
+             * Partial messages are not processed.
+             * This issue has to be fixed.
+             */
+            byte[] buffer = new byte[512];
 
             writeCommand(VOLD_CMD_SEND_UMS_STATUS);
             mountMedia(Environment.getExternalStorageDirectory().getAbsolutePath());
-            
+
             while (true) {
                 int count = inputStream.read(buffer);
                 if (count < 0) break;
