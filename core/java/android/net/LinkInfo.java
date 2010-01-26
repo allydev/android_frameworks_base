@@ -39,7 +39,7 @@ public class LinkInfo implements Parcelable {
 
     /** IP address of the network link. Currently android supports only v4
      */
-    private int ipAddr;
+    private String ipAddr;
 
     /** Estimated forward-link bandwidth in kbps.
      */
@@ -60,7 +60,7 @@ public class LinkInfo implements Parcelable {
     /** Default constructor
      */
     public LinkInfo() {
-        ipAddr = INF_UNSPECIFIED;
+        ipAddr = null;
         availFwLinkBw = INF_UNSPECIFIED;
         availRevLinkBw = INF_UNSPECIFIED;
         nwId = INF_UNSPECIFIED;
@@ -68,7 +68,7 @@ public class LinkInfo implements Parcelable {
 
     /** parametric constructor
      */
-    public LinkInfo(int ip,
+    public LinkInfo(String ip,
                     int fwLinkBw,
                     int revLinkBw,
                     int netId) {
@@ -85,7 +85,7 @@ public class LinkInfo implements Parcelable {
      * corresponds to.
      * @return IPv4 address of the interface
      */
-    public int getIpAddr() {
+    public String getIpAddr() {
         return ipAddr;
     }
 
@@ -130,7 +130,7 @@ public class LinkInfo implements Parcelable {
      * @hide
      */
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeInt(ipAddr);
+        dest.writeString(ipAddr);
         dest.writeInt(availFwLinkBw);
         dest.writeInt(availRevLinkBw);
         dest.writeInt(nwId);
@@ -141,7 +141,7 @@ public class LinkInfo implements Parcelable {
      * @hide
      */
     public void readFromParcel(Parcel in) {
-        ipAddr = in.readInt();
+        ipAddr = in.readString();
         availFwLinkBw = in.readInt();
         availRevLinkBw = in.readInt();
         nwId = in.readInt();
@@ -154,7 +154,7 @@ public class LinkInfo implements Parcelable {
     public static final Creator<LinkInfo> CREATOR =
         new Creator<LinkInfo>() {
             public LinkInfo createFromParcel(Parcel in) {
-                int ipAddr = in.readInt();
+                String ipAddr = in.readString();
                 int availFwLinkBw = in.readInt();
                 int availRevLinkBw = in.readInt();
                 int nwId = in.readInt();
