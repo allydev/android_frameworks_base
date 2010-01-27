@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009-2010, Code Aurora Forum. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -42,9 +42,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Random;
+import java.util.UUID;
 
 public class SppTest {
-    private static final int RFCOMM_CHANNEL = 3;
+    private static final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static final int REPORTING_INTERVAL_MS = 200;
     private static final int BUFFER_SIZE = 1024;
 
@@ -131,7 +132,7 @@ public class SppTest {
         // Connect to the SPP server
         BluetoothAdapter ba = BluetoothAdapter.getDefaultAdapter();
         BluetoothDevice bd = ba.getRemoteDevice(addr);
-        BluetoothSocket bs = bd.createRfcommSocket(RFCOMM_CHANNEL);
+        BluetoothSocket bs = bd.createRfcommSocketToServiceRecord(SPP_UUID);
         bs.connect();
 
         // Loop the file through the server
@@ -197,7 +198,7 @@ public class SppTest {
         // Create a listening socket and block for a connection
         BluetoothAdapter ba = BluetoothAdapter.getDefaultAdapter();
         BluetoothServerSocket bss;
-        bss = ba.listenUsingRfcommOn(RFCOMM_CHANNEL);
+        bss = ba.listenUsingRfcommWithServiceRecord("spp_test Serial Port", SPP_UUID);
         BluetoothSocket bs = bss.accept();
 
         // Loop everything we see
