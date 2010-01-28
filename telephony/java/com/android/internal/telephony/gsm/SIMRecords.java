@@ -31,6 +31,7 @@ import com.android.internal.telephony.AdnRecord;
 import com.android.internal.telephony.AdnRecordCache;
 import com.android.internal.telephony.AdnRecordLoader;
 import com.android.internal.telephony.CommandsInterface;
+import com.android.internal.telephony.IccCardApplication;
 import com.android.internal.telephony.IccFileHandler;
 import com.android.internal.telephony.IccRecords;
 import com.android.internal.telephony.IccUtils;
@@ -1922,7 +1923,8 @@ public final class SIMRecords extends IccRecords {
      */
     void handleSstData(byte[] data) {
         try {
-            if (SystemProperties.getBoolean("persist.cust.tel.simtype",false)) {
+            if (((GSMPhone)phone).mSimCard
+                    .isApplicationOnIcc(IccCardApplication.AppType.APPTYPE_SIM)) {
                 //2G Sim.
                 //Service no 51:   PLMN Network Name
                 //Service no 52:   Operator PLMN List
@@ -1938,7 +1940,8 @@ public final class SIMRecords extends IccRecords {
                     sstPlmnOplValue = EONS_DISABLED;
                     Log.i(LOG_TAG,"EONS: SST: 2G Sim,PNN disabled, disabling EONS "+sstPlmnOplValue);
                 }
-            } else {
+            } else if (((GSMPhone)phone).mSimCard
+                    .isApplicationOnIcc(IccCardApplication.AppType.APPTYPE_USIM)) {
                 //3G Sim.
                 //Service no 45: PLMN Network Name
                 //Service no 46: Operator PLMN List
@@ -1954,7 +1957,11 @@ public final class SIMRecords extends IccRecords {
                     sstPlmnOplValue = EONS_DISABLED;
                     Log.i(LOG_TAG,"EONS: SST: 3G Sim,PNN disabled, disabling EONS "+sstPlmnOplValue);
                 }
+            } else {
+                sstPlmnOplValue = EONS_DISABLED;
+                Log.e(LOG_TAG, "EONS: Unhandled SIM type, disabling EONS");
             }
+
             //Update the display if EONS is disabled.
             if (sstPlmnOplValue == EONS_DISABLED) {
                 ((GSMPhone) phone).mSST.updateSpnDisplay();
