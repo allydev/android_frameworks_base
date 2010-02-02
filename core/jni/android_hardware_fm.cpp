@@ -264,8 +264,12 @@ static jint android_hardware_fmradio_FmReceiverJNI_setMonoStereoNative
     int err;
 
     tuner.index = 0;
-    tuner.audmode = val;
+    err = ioctl(fd, VIDIOC_G_TUNER, &tuner);
 
+    if(err < 0)
+        return FM_JNI_FAILURE;
+
+    tuner.audmode = val;
     err = ioctl(fd, VIDIOC_S_TUNER, &tuner);
 
     if(err < 0)
