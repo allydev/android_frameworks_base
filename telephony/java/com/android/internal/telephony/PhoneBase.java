@@ -403,6 +403,14 @@ public abstract class PhoneBase extends Handler implements Phone {
         mCM.unregisterForCdmaFwdContDtmfStop(h);
     }
 
+    public void registerForCallReestablishInd(Handler h, int what, Object obj) {
+        mCM.registerForCallReestablishInd(h, what, obj);
+    }
+
+    public void unregisterForCallReestablishInd(Handler h) {
+        mCM.unregisterForCallReestablishInd(h);
+    }
+
     // Inherited documentation suffices.
     public void registerForIncomingRing(
             Handler h, int what, Object obj) {

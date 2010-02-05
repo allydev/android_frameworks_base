@@ -589,6 +589,16 @@ public interface CommandsInterface {
     void unregisterForCdmaFwdContDtmfStop(Handler h);
 
     /**
+     * Handlers for call re-establishment indications.
+     *
+     * @param h Handler for re-establishment messages.
+     * @param what User-defined message code.
+     * @param obj User object.
+     */
+    void registerForCallReestablishInd(Handler h, int what, Object obj);
+    void unregisterForCallReestablishInd(Handler h);
+
+    /**
      * Supply the ICC PIN to the ICC card
      *
      *  returned message

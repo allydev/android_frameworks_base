@@ -606,6 +606,14 @@ public class PhoneProxy extends Handler implements Phone {
         mActivePhone.unregisterForCdmaFwdContDtmfStop(h);
     }
 
+    public void registerForCallReestablishInd(Handler h, int what, Object obj) {
+        mActivePhone.registerForCallReestablishInd(h, what, obj);
+    }
+
+    public void unregisterForCallReestablishInd(Handler h) {
+        mActivePhone.unregisterForCallReestablishInd(h);
+    }
+
     /**
      * @deprecated
      */

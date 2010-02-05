@@ -2689,6 +2689,7 @@ public final class RIL extends BaseCommands implements CommandsInterface {
         final int QCRILHOOK_UNSOL_CDMA_BURST_DTMF = QCRILHOOK_BASE + 1001;
         final int QCRILHOOK_UNSOL_CDMA_CONT_DTMF_START = QCRILHOOK_BASE + 1002;
         final int QCRILHOOK_UNSOL_CDMA_CONT_DTMF_STOP = QCRILHOOK_BASE + 1003;
+        final int QCRILHOOK_UNSOL_CALL_REESTABLISH_IND = QCRILHOOK_BASE + 1004;
 
         int response_id = 0, response_size = 0;
 
@@ -2716,6 +2717,10 @@ public final class RIL extends BaseCommands implements CommandsInterface {
                 notifyCdmaFwdContDtmfStop();
                 break;
 
+            case QCRILHOOK_UNSOL_CALL_REESTABLISH_IND:
+                notifyCallReestablish();
+                break;
+
             default:
                 Log.d(LOG_TAG, "Response ID " + response_id + "is not served in this process.");
                 Log.d(LOG_TAG, "To broadcast an Intent via the notifier to external apps");
@@ -2731,7 +2736,6 @@ public final class RIL extends BaseCommands implements CommandsInterface {
     }
 
     /** Notify registrants of FWD Burst DTMF Tone. */
-
     protected void notifyCdmaFwdBurstDtmf(byte[] data) {
         AsyncResult ar = new AsyncResult(null, data, null);
         mCdmaFwdBurstDtmfRegistrants.notifyRegistrants(ar);
@@ -2747,6 +2751,12 @@ public final class RIL extends BaseCommands implements CommandsInterface {
     protected void notifyCdmaFwdContDtmfStop() {
         AsyncResult ar = new AsyncResult(null, null, null);
         mCdmaFwdContDtmfStopRegistrants.notifyRegistrants(ar);
+    }
+
+    /** Notify registrants of call progress info indications */
+    protected void notifyCallReestablish() {
+        AsyncResult ar = new AsyncResult(null, null, null);
+        mCallReestablishIndRegistrants.notifyRegistrants(ar);
     }
 
     private Object
