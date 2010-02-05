@@ -829,7 +829,11 @@ public final class CNE
                 sendDefaultNwPref(mNetworkPreference);
 
                 /* start the default connection now */
-                mDefaultConn.startConnection();
+                if(mDefaultConn != null){
+                    mDefaultConn.startConnection();
+                }else{
+                    Log.e(LOG_TAG,"mDefaultConn is null");
+                }
 
                 int length = 0;
                 try {
