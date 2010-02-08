@@ -135,19 +135,21 @@ public class FmTransceiver
       if (sFd == 0)
       {
          sFd = FmReceiverJNI.acquireFdNative("/dev/radio0");
-         Log.d(TAG, "** Opened "+ sFd);
-      } else
-      {
-         Log.d(TAG, "Already opened");
+
+         if (sFd > 0) {
+           Log.d(TAG, "Opened "+ sFd);
+           bStatus = true;
+	 }
+         else {
+           Log.d(TAG, "Fail to Open "+ sFd);
+	   bStatus = false;
+         }
       }
-      if(sFd != 0)
-      {
+      else {
+         Log.d(TAG, "Alredy Opened "+ sFd);
          bStatus = true;
       }
-      else
-      {
-         bStatus = false;
-      }
+
       return (bStatus);
    }
 
