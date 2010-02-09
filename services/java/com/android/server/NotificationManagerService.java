@@ -50,6 +50,7 @@ import android.os.Message;
 import android.os.Power;
 import android.os.Process;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.Vibrator;
 import android.provider.Settings;
@@ -101,6 +102,7 @@ class NotificationManagerService extends INotificationManager.Stub
     private boolean mNotificationPulseEnabled;
 
     // for adb connected notifications
+    private static final int DATA_BASE_SYNC_DELAY_MSTIME = 15;
     private boolean mUsbConnected;
     private boolean mAdbEnabled = false;
     private boolean mAdbNotificationShown = false;
@@ -367,6 +369,11 @@ class NotificationManagerService extends INotificationManager.Stub
 
         public void update() {
             ContentResolver resolver = mContext.getContentResolver();
+
+            /* Content server notified onChange before completion
+             * of write update in the data base
+             * Delay data base read until write complete */
+            SystemClock.sleep(DATA_BASE_SYNC_DELAY_MSTIME);
             boolean adbEnabled = Settings.Secure.getInt(resolver,
                         Settings.Secure.ADB_ENABLED, 0) != 0;
             if (mAdbEnabled != adbEnabled) {
