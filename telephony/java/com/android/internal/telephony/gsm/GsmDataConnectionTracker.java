@@ -592,9 +592,12 @@ public final class GsmDataConnectionTracker extends DataConnectionTracker {
         Message msg = obtainMessage();
         msg.what = EVENT_DATA_SETUP_COMPLETE;
         msg.obj = reason;
-        pdp.connect(msg, apn);
-
+        // Setting the state to INITING before calling connect.
+        // There can be a situation were response indicating connect
+        // failure arrives before the connect request completes. This will
+        // block all further attempts to establish data call.
         setState(State.INITING);
+        pdp.connect(msg, apn);
         phone.notifyDataConnection(reason);
         return true;
     }
