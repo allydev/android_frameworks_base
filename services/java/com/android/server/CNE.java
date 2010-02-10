@@ -1136,14 +1136,9 @@ public final class CNE
               String ifName = null;
               String ipAddr = null;
               String gatewayAddr = null;
-              ConnectivityManager cm =
-                (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-              NetworkInfo networkInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
-              NetworkInfo.State networkState = (networkInfo == null ? NetworkInfo.State.UNKNOWN :
-                    networkInfo.getState());
+              NetworkInfo.State networkState = converToNetworkState(dataState);
 
-              if ((networkState == NetworkInfo.State.CONNECTED) &&
-                 (dataState == TelephonyManager.DATA_CONNECTED)) {
+              if (networkState == NetworkInfo.State.CONNECTED){
               ifName = mTelephonyManager.getActiveInterfaceName(null);
               ipAddr = mTelephonyManager.getActiveIpAddress(null);
               gatewayAddr = mTelephonyManager.getActiveGateway(null);
@@ -1183,6 +1178,22 @@ public final class CNE
             }
         }
     };
+
+
+    private NetworkInfo.State converToNetworkState(int dataState){
+        switch(dataState){
+        case TelephonyManager.DATA_DISCONNECTED :
+            return NetworkInfo.State.DISCONNECTED;
+        case TelephonyManager.DATA_CONNECTING :
+            return NetworkInfo.State.CONNECTING;
+        case TelephonyManager.DATA_CONNECTED :
+            return NetworkInfo.State.CONNECTED;
+        case TelephonyManager.DATA_SUSPENDED :
+            return NetworkInfo.State.SUSPENDED;
+        default:
+            return NetworkInfo.State.UNKNOWN;
+        }
+    }
 
     private int
     getSignalStrength(int networkType)
