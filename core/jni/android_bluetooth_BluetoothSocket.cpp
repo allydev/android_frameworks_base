@@ -1,6 +1,5 @@
 /*
  * Copyright 2009, The Android Open Source Project
- * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,9 +29,6 @@
 #include <sys/ioctl.h>
 
 #ifdef HAVE_BLUETOOTH
-#ifdef USE_BM3_BLUETOOTH
-#include "BluetoothSocketEventLoop.h"
-#endif
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
 #include <bluetooth/l2cap.h>
@@ -71,19 +67,7 @@ static struct asocket *get_socketData(JNIEnv *env, jobject obj) {
 static void initSocketFromFdNative(JNIEnv *env, jobject obj, jint fd) {
 #ifdef HAVE_BLUETOOTH
     LOGV(__FUNCTION__);
-#ifdef USE_BM3_BLUETOOTH
-    LOGV("Initializing Bluetooth socket event loop.");
-    if (initializeBluetoothSocketNativeData()) {
-        LOGV("Starting Bluetooth socket event loop.");
-        startBluetoothSocketEventLoop();
-    }
 
-    if (-1 == fd) {
-        // TODO: put in a bluetooth socket counter--check on close and teardown the event loop
-        //       in destroyNative if everyone is off of it.
-        return;
-    }
-#endif /* USE_BM3_BLUETOOTH */
     struct asocket *s = asocket_init(fd);
 
     if (!s) {
@@ -102,17 +86,7 @@ static void initSocketFromFdNative(JNIEnv *env, jobject obj, jint fd) {
 static void initSocketNative(JNIEnv *env, jobject obj) {
 #ifdef HAVE_BLUETOOTH
     LOGV(__FUNCTION__);
-#ifdef USE_BM3_BLUETOOTH
-    // BM3: RFCOMM-only assumption
-    jint type;
-    type = env->GetIntField(obj, field_mType);
-    if (TYPE_RFCOMM != type) {
-        jniThrowIOException(env, ENOSYS);
-        return;
-    }
 
-    int fd = -1; /* Bogus value for now--for BM3 we initialize the socket on connect/bind */
-#else
     int fd;
     int lm = 0;
     int sndbuf;
@@ -178,7 +152,7 @@ static void initSocketNative(JNIEnv *env, jobject obj) {
     }
 
     LOGV("...fd %d created (%s, lm = %x)", fd, TYPE_AS_STR(type), lm);
-#endif /* USE_BM3_BLUETOOTH */
+
     initSocketFromFdNative(env, obj, fd);
     return;
 #endif
@@ -188,49 +162,7 @@ static void initSocketNative(JNIEnv *env, jobject obj) {
 static void connectNative(JNIEnv *env, jobject obj) {
 #ifdef HAVE_BLUETOOTH
     LOGV(__FUNCTION__);
-#ifdef USE_BM3_BLUETOOTH
-    // BM3: RFCOMM-only assumption
-    jint type;
-    type = env->GetIntField(obj, field_mType);
-    if (TYPE_RFCOMM != type) {
-        jniThrowIOException(env, ENOSYS);
-        return;
-    }
 
-    int fd;
-    const char *c_address;
-    jstring address;
-    address = (jstring) env->GetObjectField(obj, field_mAddress);
-    c_address = env->GetStringUTFChars(address, NULL);
-
-    uint32_t channel = env->GetIntField(obj, field_mPort);
-
-    jboolean auth = env->GetBooleanField(obj, field_mAuth);
-
-    fd = connectBluetoothSocket(c_address,
-            channel,
-            (auth?3:1)); // 3 = auth link required, 1 = 2.1+ unauth link key, or none
-
-    env->ReleaseStringUTFChars(address, c_address);
-
-    if (fd < 0) {
-        LOGE("Could not create Bluetooth socket!");
-        jniThrowIOException(env, ENETUNREACH/* TODO: ??? */);
-    }
-
-    // Initialize the 'asocket' used for all of the standard socket calls
-    struct asocket *s = asocket_init(fd);
-
-    if (!s) {
-        LOGV("asocket_init() failed, throwing");
-        jniThrowIOException(env, errno);
-        return;
-    }
-
-    env->SetIntField(obj, field_mSocketData, (jint)s);
-
-    return;
-#else
     int ret;
     jint type;
     const char *c_address;
@@ -301,8 +233,7 @@ static void connectNative(JNIEnv *env, jobject obj) {
         jniThrowIOException(env, errno);
 
     return;
-#endif /* USE_BM3_BLUETOOTH */
-#endif /* HAVE_BLUETOOTH */
+#endif
     jniThrowIOException(env, ENOSYS);
 }
 
@@ -310,46 +241,7 @@ static void connectNative(JNIEnv *env, jobject obj) {
 static int bindListenNative(JNIEnv *env, jobject obj) {
 #ifdef HAVE_BLUETOOTH
     LOGV(__FUNCTION__);
-#ifdef USE_BM3_BLUETOOTH
-    // BM3: RFCOMM-only assumption
-    jint type;
-    type = env->GetIntField(obj, field_mType);
-    if (TYPE_RFCOMM != type) {
-        return ENOSYS;
-    }
 
-    uint32_t channel = env->GetIntField(obj, field_mPort);
-    jboolean auth = env->GetBooleanField(obj, field_mAuth);
-
-    pthread_mutex_lock(&g_server_sockets_mutex);
-    int server_socket_idx = createServerSocketNativeData();
-    if (server_socket_idx < 0) {
-        pthread_mutex_unlock(&g_server_sockets_mutex);
-        return ENOMEM;
-    }
-
-    bool ret = registerBluetoothSocketServer(channel,
-            (auth?3:1), // 3 = auth link required, 1 = 2.1+ unauth link key, or none
-            g_server_sockets[server_socket_idx].server_path,
-            sizeof(g_server_sockets[server_socket_idx].server_path));
-
-    if (!ret) {
-        deleteServerSocketNativeData(server_socket_idx);
-    } else {
-        g_server_sockets[server_socket_idx].asock = asocket_init(server_socket_idx);
-
-        if (!g_server_sockets[server_socket_idx].asock) {
-            LOGV("asocket_init() failed, throwing");
-            pthread_mutex_unlock(&g_server_sockets_mutex);
-            return errno;
-        }
-
-        env->SetIntField(obj, field_mSocketData, (jint)g_server_sockets[server_socket_idx].asock);
-    }
-
-    pthread_mutex_unlock(&g_server_sockets_mutex);
-    return 0;
-#else
     jint type;
     socklen_t addr_sz;
     struct sockaddr *addr;
@@ -409,103 +301,14 @@ static int bindListenNative(JNIEnv *env, jobject obj) {
 
     return 0;
 
-#endif /* USE_BM3_BLUETOOTH */
-#endif /* HAVE_BLUETOOTH */
+#endif
     return ENOSYS;
 }
 
 static jobject acceptNative(JNIEnv *env, jobject obj, int timeout) {
 #ifdef HAVE_BLUETOOTH
     LOGV(__FUNCTION__);
-#ifdef USE_BM3_BLUETOOTH
-    // BM3: RFCOMM-only assumption
-    jstring addr_jstr;
-    jboolean auth;
-    jboolean encrypt;
-    jint type;
 
-    type = env->GetIntField(obj, field_mType);
-    if (TYPE_RFCOMM != type) {
-        jniThrowIOException(env, ENOSYS);
-        return NULL;
-    }
-
-    struct asocket *s = get_socketData(env, obj);
-
-    if (!s)
-        return NULL;
-
-    // Determine the pending server socket to accept on
-    pthread_mutex_lock(&g_server_sockets_mutex);
-    int server_socket_idx = findServerSocketNativeData(s);
-
-    if (server_socket_idx < 0) {
-        pthread_mutex_unlock(&g_server_sockets_mutex);
-        jniThrowIOException(env, EINVAL);
-        return NULL;
-    }
-
-    pthread_mutex_t* accept_mutex = &(g_server_sockets[server_socket_idx].is_connected_mutex);
-    pthread_cond_t* accept_cond = &(g_server_sockets[server_socket_idx].is_connected_cond);
-    pthread_mutex_unlock(&g_server_sockets_mutex);
-
-    // Wait for a connection up to timeout ms, if timeout < 0 wait indefinitely
-    if (0 == pthread_mutex_lock(accept_mutex)) {
-        int status = 0;
-        if (timeout < 0) {
-            status = pthread_cond_wait(accept_cond, accept_mutex);
-        } else {
-            struct timespec ts;
-            clock_gettime(CLOCK_REALTIME, &ts);
-            ts.tv_sec += 2*timeout/1000;
-            ts.tv_nsec += (2*timeout%1000)*1000000;
-            if (ts.tv_nsec > 1000000000L) {
-                ts.tv_sec++;
-                ts.tv_nsec -= 1000000000L;
-            }
-
-            status = pthread_cond_timedwait(accept_cond, accept_mutex, &ts);
-        }
-
-        if (status) {
-            pthread_mutex_unlock(accept_mutex);
-            jniThrowIOException(env, status);
-            return NULL;
-        }
-    }
-    pthread_mutex_unlock(accept_mutex);
-
-    // Determine the server pathname and the remote address
-    pthread_mutex_lock(&g_server_sockets_mutex);
-    server_socket_idx = findServerSocketNativeData(s);
-
-    if (server_socket_idx < 0) {
-        pthread_mutex_unlock(&g_server_sockets_mutex);
-        jniThrowIOException(env, EINVAL);
-        return NULL;
-    }
-
-    int fd = acceptConnectionBluetoothSocketServer(g_server_sockets[server_socket_idx].server_path,
-            g_server_sockets[server_socket_idx].remote_addr,
-            TRUE);
-
-    pthread_mutex_unlock(&g_server_sockets_mutex);
-
-    LOGV("...accept(%d) = %d (errno %d)",
-            s->fd, fd, errno);
-
-    if (fd < 0) {
-        jniThrowIOException(env, errno);
-        return NULL;
-    }
-
-    /* Connected - return new BluetoothSocket */
-    auth = env->GetBooleanField(obj, field_mAuth);
-    encrypt = env->GetBooleanField(obj, field_mEncrypt);
-    addr_jstr = env->NewStringUTF(g_server_sockets[server_socket_idx].remote_addr);
-    return env->NewObject(class_BluetoothSocket, method_BluetoothSocket_ctor,
-            type, fd, auth, encrypt, addr_jstr, -1);
-#else
     int fd;
     jint type;
     struct sockaddr *addr;
@@ -569,8 +372,8 @@ static jobject acceptNative(JNIEnv *env, jobject obj, int timeout) {
     addr_jstr = env->NewStringUTF(addr_cstr);
     return env->NewObject(class_BluetoothSocket, method_BluetoothSocket_ctor,
             type, fd, auth, encrypt, addr_jstr, -1);
-#endif /* USE_BM3_BLUETOOTH */
-#endif /* HAVE_BLUETOOTH */
+
+#endif
     jniThrowIOException(env, ENOSYS);
     return NULL;
 }
