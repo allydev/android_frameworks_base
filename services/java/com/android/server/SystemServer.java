@@ -236,6 +236,7 @@ class ServerThread extends Thread {
                 Log.i(TAG, "Connectivity Service");
                 connectivity = ConnectivityService.getInstance(context);
                 ServiceManager.addService(Context.CONNECTIVITY_SERVICE, connectivity);
+                connectivity.startCne();
             } catch (Throwable e) {
                 Log.e(TAG, "Failure starting Connectivity Service", e);
             }
