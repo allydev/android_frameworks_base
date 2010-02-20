@@ -1,6 +1,5 @@
 /*
 ** Copyright 2006, The Android Open Source Project
-** Copyright (c) 2009, Code Aurora Forum. All rights reserved.
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,9 +18,6 @@
 
 #include "android_bluetooth_common.h"
 #include "android_runtime/AndroidRuntime.h"
-#ifdef USE_BM3_BLUETOOTH
-#include "HeadsetHandsfreeEventLoop.h"
-#endif
 #include "JNIHelp.h"
 #include "jni.h"
 #include "utils/Log.h"
@@ -31,10 +27,6 @@
 #define USE_SELECT (0) /* 1 for select(), 0 for poll(); used only when
                           USE_ACCEPT_DIRECTLY == 0 */
 
-#ifdef USE_BM3_BLUETOOTH
-#include <pthread.h>
-#include <time.h>
-#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -79,11 +71,6 @@ static jfieldID field_mConnectingHandsfreeAddress;
 static jfieldID field_mConnectingHandsfreeRfcommChannel; /* -1 when not connected */
 static jfieldID field_mConnectingHandsfreeSocketFd;
 
-#ifdef USE_BM3_BLUETOOTH
-pthread_mutex_t g_incoming_rfcomm_connection_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t g_incoming_rfcomm_connection_cond = PTHREAD_COND_INITIALIZER;
-int g_incoming_rfcomm_connection_type; /* <=0 invalid, 1 = HFP, 2 = HSP */
-#endif /* USE_BM3_BLUETOOTH */
 
 typedef struct {
     int hcidev;
@@ -107,29 +94,29 @@ static void classInitNative(JNIEnv* env, jclass clazz) {
 
     /* in */
     field_mNativeData = get_field(env, clazz, "mNativeData", "I");
-    field_mHandsfreeAgRfcommChannel =
+    field_mHandsfreeAgRfcommChannel = 
         get_field(env, clazz, "mHandsfreeAgRfcommChannel", "I");
-    field_mHeadsetAgRfcommChannel =
+    field_mHeadsetAgRfcommChannel = 
         get_field(env, clazz, "mHeadsetAgRfcommChannel", "I");
 
     /* out */
-    field_mConnectingHeadsetAddress =
-        get_field(env, clazz,
+    field_mConnectingHeadsetAddress = 
+        get_field(env, clazz, 
                   "mConnectingHeadsetAddress", "Ljava/lang/String;");
-    field_mConnectingHeadsetRfcommChannel =
+    field_mConnectingHeadsetRfcommChannel = 
         get_field(env, clazz, "mConnectingHeadsetRfcommChannel", "I");
-    field_mConnectingHeadsetSocketFd =
+    field_mConnectingHeadsetSocketFd = 
         get_field(env, clazz, "mConnectingHeadsetSocketFd", "I");
 
-    field_mConnectingHandsfreeAddress =
-        get_field(env, clazz,
+    field_mConnectingHandsfreeAddress = 
+        get_field(env, clazz, 
                   "mConnectingHandsfreeAddress", "Ljava/lang/String;");
-    field_mConnectingHandsfreeRfcommChannel =
+    field_mConnectingHandsfreeRfcommChannel = 
         get_field(env, clazz, "mConnectingHandsfreeRfcommChannel", "I");
-    field_mConnectingHandsfreeSocketFd =
+    field_mConnectingHandsfreeSocketFd = 
         get_field(env, clazz, "mConnectingHandsfreeSocketFd", "I");
 
-    field_mTimeoutRemainingMs =
+    field_mTimeoutRemainingMs = 
         get_field(env, clazz, "mTimeoutRemainingMs", "I");
 #endif
 }
@@ -159,10 +146,6 @@ static void initializeNativeDataNative(JNIEnv* env, jobject object) {
 
     nat->hf_ag_rfcomm_sock = -1;
     nat->hs_ag_rfcomm_sock = -1;
-
-#ifdef USE_BM3_BLUETOOTH
-    g_incoming_rfcomm_connection_type = 0;
-#endif
 #endif
 }
 
@@ -182,7 +165,7 @@ static void cleanupNativeDataNative(JNIEnv* env, jobject object) {
 static int set_nb(int sk, bool nb) {
     int flags = fcntl(sk, F_GETFL);
     if (flags < 0) {
-        LOGE("Can't get socket flags with fcntl(): %s (%d)",
+        LOGE("Can't get socket flags with fcntl(): %s (%d)", 
              strerror(errno), errno);
         close(sk);
         return -1;
@@ -204,22 +187,7 @@ static int do_accept(JNIEnv* env, jobject object, int ag_fd,
                      jfieldID out_fd,
                      jfieldID out_address,
                      jfieldID out_channel) {
-#ifdef USE_BM3_BLUETOOTH
-    if (/*HFP*/1 == ag_fd) {
-        acceptIncomingConnection(BM3_DBUS_HSHF_HFAG_PROFILE_PATH);
-    } else { /* HSP */
-        acceptIncomingConnection(BM3_DBUS_HSHF_HSAG_PROFILE_PATH);
-    }
 
-    env->SetIntField(object, out_fd, ag_fd);
-    env->SetIntField(object, out_channel, ag_fd);
-    env->SetObjectField(object, out_address, env->NewStringUTF(g_incoming_rfcomm_remote_addr));
-
-    LOGI("Successful accept() on AG fd %d, address %s.",
-         ag_fd,
-         g_incoming_rfcomm_remote_addr);
-    return 0;
-#else
 #if USE_ACCEPT_DIRECTLY==0
     if (set_nb(ag_fd, true) < 0)
         return -1;
@@ -255,7 +223,6 @@ static int do_accept(JNIEnv* env, jobject object, int ag_fd,
     set_nb(ag_fd, false);
 #endif
     return 0;
-#endif /* USE_BM3_BLUETOOTH */
 }
 
 #if USE_SELECT
@@ -288,77 +255,20 @@ static inline int on_accept_set_fields(JNIEnv* env, jobject object,
 
 static jboolean waitForHandsfreeConnectNative(JNIEnv* env, jobject object,
                                               jint timeout_ms) {
-    LOGV(__FUNCTION__);
+//    LOGV(__FUNCTION__);
 #ifdef HAVE_BLUETOOTH
 
     env->SetIntField(object, field_mTimeoutRemainingMs, timeout_ms);
 
     int n = 0;
     native_data_t *nat = get_native_data(env, object);
-#if USE_BM3_BLUETOOTH
-    LOGV("Blocking for incoming HSP/HFP RFCOMM connection.");
-
-    /* wait up to timeout_ms for HF or HS connection */
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    ts.tv_sec += timeout_ms/1000;
-    ts.tv_nsec += (timeout_ms%1000)*1000000;
-    if (ts.tv_nsec > 1000000000L) {
-        ts.tv_sec++;
-        ts.tv_nsec -= 1000000000L;
-    }
-
-    /* HACK: just setting remaining time to 0--we don't want upper-level thread sleeping! */
-    env->SetIntField(object, field_mTimeoutRemainingMs, 0);
-
-    if (0 == pthread_mutex_lock(&g_incoming_rfcomm_connection_mutex)) {
-        while (g_incoming_rfcomm_connection_type <= 0) {
-            int status;
-            status = pthread_cond_timedwait(&g_incoming_rfcomm_connection_cond, &g_incoming_rfcomm_connection_mutex, &ts);
-
-            if (status == ETIMEDOUT) {
-                LOGV("No incoming HSP/HFP RFCOMM connection (timeout).");
-                pthread_mutex_unlock(&g_incoming_rfcomm_connection_mutex);
-                return JNI_FALSE;
-            } else if (status != 0) {
-                LOGE("No incoming HSP/HFP RFCOMM connection (error).");
-                pthread_mutex_unlock(&g_incoming_rfcomm_connection_mutex);
-                return JNI_FALSE;
-            }
-        }
-
-        LOGV("Unblocked for incoming HSP/HFP RFCOMM connection.");
-        if (g_incoming_rfcomm_connection_type == 1 /* HFP */) {
-            LOGI("Accepting HF connection.");
-            do_accept(env, object, g_incoming_rfcomm_connection_type,
-                      field_mConnectingHandsfreeSocketFd,
-                      field_mConnectingHandsfreeAddress,
-                      field_mConnectingHandsfreeRfcommChannel);
-        } else {
-            LOGI("Accepting HS connection.");
-            do_accept(env, object, g_incoming_rfcomm_connection_type,
-                      field_mConnectingHeadsetSocketFd,
-                      field_mConnectingHeadsetAddress,
-                      field_mConnectingHeadsetRfcommChannel);
-        }
-
-        /* Reset the connection RFCOMM type... */
-        g_incoming_rfcomm_connection_type = 0;
-        pthread_mutex_unlock(&g_incoming_rfcomm_connection_mutex);
-    } else {
-        LOGE("Incoming RFCOMM connection mutex lock failure!");
-        return JNI_FALSE;
-    }
-
-    return JNI_TRUE;
-#else
 #if USE_ACCEPT_DIRECTLY
     if (nat->hf_ag_rfcomm_channel > 0) {
-        LOGI("Setting HF AG server socket to RFCOMM port %d!",
+        LOGI("Setting HF AG server socket to RFCOMM port %d!", 
              nat->hf_ag_rfcomm_channel);
         struct timeval tv;
         int len = sizeof(tv);
-        if (getsockopt(nat->hf_ag_rfcomm_channel,
+        if (getsockopt(nat->hf_ag_rfcomm_channel, 
                        SOL_SOCKET, SO_RCVTIMEO, &tv, &len) < 0) {
             LOGE("getsockopt(%d, SOL_SOCKET, SO_RCVTIMEO): %s (%d)",
                  nat->hf_ag_rfcomm_channel,
@@ -366,12 +276,12 @@ static jboolean waitForHandsfreeConnectNative(JNIEnv* env, jobject object,
                  errno);
             return JNI_FALSE;
         }
-        LOGI("Current HF AG server socket RCVTIMEO is (%d(s), %d(us))!",
+        LOGI("Current HF AG server socket RCVTIMEO is (%d(s), %d(us))!", 
              (int)tv.tv_sec, (int)tv.tv_usec);
         if (timeout_ms >= 0) {
             tv.tv_sec = timeout_ms / 1000;
             tv.tv_usec = 1000 * (timeout_ms % 1000);
-            if (setsockopt(nat->hf_ag_rfcomm_channel,
+            if (setsockopt(nat->hf_ag_rfcomm_channel, 
                            SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
                 LOGE("setsockopt(%d, SOL_SOCKET, SO_RCVTIMEO): %s (%d)",
                      nat->hf_ag_rfcomm_channel,
@@ -379,11 +289,11 @@ static jboolean waitForHandsfreeConnectNative(JNIEnv* env, jobject object,
                      errno);
                 return JNI_FALSE;
             }
-            LOGI("Changed HF AG server socket RCVTIMEO to (%d(s), %d(us))!",
+            LOGI("Changed HF AG server socket RCVTIMEO to (%d(s), %d(us))!", 
                  (int)tv.tv_sec, (int)tv.tv_usec);
         }
 
-        if (!do_accept(env, object, nat->hf_ag_rfcomm_sock,
+        if (!do_accept(env, object, nat->hf_ag_rfcomm_sock, 
                        field_mConnectingHandsfreeSocketFd,
                        field_mConnectingHandsfreeAddress,
                        field_mConnectingHandsfreeRfcommChannel))
@@ -399,13 +309,13 @@ static jboolean waitForHandsfreeConnectNative(JNIEnv* env, jobject object,
     FD_ZERO(&rset);
     int cnt = 0;
     if (nat->hf_ag_rfcomm_channel > 0) {
-        LOGI("Setting HF AG server socket to RFCOMM port %d!",
+        LOGI("Setting HF AG server socket to RFCOMM port %d!", 
              nat->hf_ag_rfcomm_channel);
         cnt++;
         FD_SET(nat->hf_ag_rfcomm_sock, &rset);
     }
     if (nat->hs_ag_rfcomm_channel > 0) {
-        LOGI("Setting HS AG server socket to RFCOMM port %d!",
+        LOGI("Setting HS AG server socket to RFCOMM port %d!", 
              nat->hs_ag_rfcomm_channel);
         cnt++;
         FD_SET(nat->hs_ag_rfcomm_sock, &rset);
@@ -420,7 +330,7 @@ static jboolean waitForHandsfreeConnectNative(JNIEnv* env, jobject object,
         to.tv_sec = timeout_ms / 1000;
         to.tv_usec = 1000 * (timeout_ms % 1000);
     }
-    n = select(MAX(nat->hf_ag_rfcomm_sock,
+    n = select(MAX(nat->hf_ag_rfcomm_sock, 
                        nat->hs_ag_rfcomm_sock) + 1,
                    &rset,
                    NULL,
@@ -444,7 +354,7 @@ static jboolean waitForHandsfreeConnectNative(JNIEnv* env, jobject object,
         return JNI_FALSE;
     }
 
-    n = on_accept_set_fields(env, object,
+    n = on_accept_set_fields(env, object, 
                              &rset, nat->hf_ag_rfcomm_sock,
                              field_mConnectingHandsfreeSocketFd,
                              field_mConnectingHandsfreeAddress,
@@ -461,7 +371,7 @@ static jboolean waitForHandsfreeConnectNative(JNIEnv* env, jobject object,
     struct pollfd fds[2];
     int cnt = 0;
     if (nat->hf_ag_rfcomm_channel > 0) {
-//        LOGI("Setting HF AG server socket %d to RFCOMM port %d!",
+//        LOGI("Setting HF AG server socket %d to RFCOMM port %d!", 
 //             nat->hf_ag_rfcomm_sock,
 //             nat->hf_ag_rfcomm_channel);
         fds[cnt].fd = nat->hf_ag_rfcomm_sock;
@@ -469,7 +379,7 @@ static jboolean waitForHandsfreeConnectNative(JNIEnv* env, jobject object,
         cnt++;
     }
     if (nat->hs_ag_rfcomm_channel > 0) {
-//        LOGI("Setting HS AG server socket %d to RFCOMM port %d!",
+//        LOGI("Setting HS AG server socket %d to RFCOMM port %d!", 
 //             nat->hs_ag_rfcomm_sock,
 //             nat->hs_ag_rfcomm_channel);
         fds[cnt].fd = nat->hs_ag_rfcomm_sock;
@@ -500,8 +410,8 @@ static jboolean waitForHandsfreeConnectNative(JNIEnv* env, jobject object,
         //LOGI("Poll on fd %d revent = %d.", fds[cnt].fd, fds[cnt].revents);
         if (fds[cnt].fd == nat->hf_ag_rfcomm_sock) {
             if (fds[cnt].revents & (POLLIN | POLLPRI | POLLOUT)) {
-                LOGI("Accepting HF connection.");
-                err += do_accept(env, object, fds[cnt].fd,
+                LOGI("Accepting HF connection.\n");
+                err += do_accept(env, object, fds[cnt].fd, 
                                field_mConnectingHandsfreeSocketFd,
                                field_mConnectingHandsfreeAddress,
                                field_mConnectingHandsfreeRfcommChannel);
@@ -510,8 +420,8 @@ static jboolean waitForHandsfreeConnectNative(JNIEnv* env, jobject object,
         }
         else if (fds[cnt].fd == nat->hs_ag_rfcomm_sock) {
             if (fds[cnt].revents & (POLLIN | POLLPRI | POLLOUT)) {
-                LOGI("Accepting HS connection.");
-                err += do_accept(env, object, fds[cnt].fd,
+                LOGI("Accepting HS connection.\n");
+                err += do_accept(env, object, fds[cnt].fd, 
                                field_mConnectingHeadsetSocketFd,
                                field_mConnectingHeadsetAddress,
                                field_mConnectingHeadsetRfcommChannel);
@@ -528,7 +438,6 @@ static jboolean waitForHandsfreeConnectNative(JNIEnv* env, jobject object,
     return !err ? JNI_TRUE : JNI_FALSE;
 #endif /* USE_SELECT */
 #endif /* USE_ACCEPT_DIRECTLY */
-#endif /* USE_BM3_BLUETOOTH */
 #else
     return JNI_FALSE;
 #endif /* HAVE_BLUETOOTH */
@@ -538,26 +447,6 @@ static jboolean setUpListeningSocketsNative(JNIEnv* env, jobject object) {
     LOGV(__FUNCTION__);
 #ifdef HAVE_BLUETOOTH
     native_data_t *nat = get_native_data(env, object);
-
-#ifdef USE_BM3_BLUETOOTH
-    LOGI("Initializing HS/HF D-Bus state.");
-    if (false == initializeHsHfNativeData()) {
-        LOGE("Could not initialize HS/HF D-Bus state!");
-        return JNI_FALSE;
-    }
-
-    LOGI("Registering for HS/HF profiles with BM3.");
-    if (false == registerHsHfProfiles()) {
-        LOGE("Could not register for HS/HF profiles with BM3.");
-        return JNI_FALSE;
-    }
-
-    LOGI("Starting HS/HF D-Bus event processing loop.");
-    if (false == startHsHfEventLoop()) {
-        LOGE("Could not start HS/HF D-Bus event processing loop!");
-        return JNI_FALSE;
-    }
-#endif /* USE_BM3_BLUETOOTH */
 
     nat->hf_ag_rfcomm_sock =
         setup_listening_socket(nat->hcidev, nat->hf_ag_rfcomm_channel);
@@ -626,25 +515,18 @@ static void tearDownListeningSocketsNative(JNIEnv *env, jobject object) {
 
     if (nat->hf_ag_rfcomm_sock > 0) {
         if (close(nat->hf_ag_rfcomm_sock) < 0) {
-            LOGE("Could not close HF server socket: %s (%d)",
+            LOGE("Could not close HF server socket: %s (%d)\n",
                  strerror(errno), errno);
         }
         nat->hf_ag_rfcomm_sock = -1;
     }
     if (nat->hs_ag_rfcomm_sock > 0) {
         if (close(nat->hs_ag_rfcomm_sock) < 0) {
-            LOGE("Could not close HS server socket: %s (%d)",
+            LOGE("Could not close HS server socket: %s (%d)\n",
                  strerror(errno), errno);
         }
         nat->hs_ag_rfcomm_sock = -1;
     }
-
-#ifdef USE_BM3_BLUETOOTH
-    LOGI("Stopping HS/HF D-Bus event processing loop.");
-    stopHsHfEventLoop();
-    cleanupHsHfNativeData();
-#endif /* USE_BM3_BLUETOOTH */
-
 #endif /* HAVE_BLUETOOTH */
 }
 

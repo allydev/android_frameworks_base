@@ -24,9 +24,7 @@ LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES -DEGL_EGLEXT_PROTOTYPES
 LOCAL_SRC_FILES:= \
 	ActivityManager.cpp \
 	AndroidRuntime.cpp \
-	BluetoothSocketEventLoop.cpp \
 	CursorWindow.cpp \
-	HeadsetHandsfreeEventLoop.cpp \
 	Time.cpp \
 	com_google_android_gles_jni_EGLImpl.cpp \
 	com_google_android_gles_jni_GLImpl.cpp.arm \
@@ -184,10 +182,6 @@ LOCAL_C_INCLUDES += \
 	system/bluetooth/bluez-clean-headers
 LOCAL_CFLAGS += -DHAVE_BLUETOOTH
 LOCAL_SHARED_LIBRARIES += libbluedroid libdbus
-
-ifeq ($(BOARD_USE_BM3_FULLSTACK),true)
-	LOCAL_CFLAGS += -DUSE_BM3_BLUETOOTH
-endif
 endif
 
 ifneq ($(TARGET_SIMULATOR),true)

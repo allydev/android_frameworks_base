@@ -1,6 +1,5 @@
 /*
 ** Copyright 2006, The Android Open Source Project
-** Copyright (c) 2009, Code Aurora Forum. All rights reserved.
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -18,9 +17,6 @@
 #define LOG_TAG "BT HSHFP"
 
 #include "android_bluetooth_common.h"
-#ifdef USE_BM3_BLUETOOTH
-#include "HeadsetHandsfreeEventLoop.h"
-#endif /* USE_BM3_BLUETOOTH */
 #include "android_runtime/AndroidRuntime.h"
 #include "JNIHelp.h"
 #include "jni.h"
@@ -61,10 +57,6 @@ typedef struct {
     int rfcomm_sock_flags;
 } native_data_t;
 
-#ifdef USE_BM3_BLUETOOTH
-int g_headset_base_read_err;
-#endif /* USE_BM3_BLUETOOTH */
-
 static inline native_data_t * get_native_data(JNIEnv *env, jobject object) {
     return (native_data_t *)(env->GetIntField(object, field_mNativeData));
 }
@@ -74,13 +66,6 @@ static const int CRLF_LEN = 2;
 
 static inline int write_error_check(int fd, const char* line, int len) {
     int ret;
-#ifdef USE_BM3_BLUETOOTH
-    ret = writeHfAg(line);
-    if (ret < 0) {
-        LOGE("%s: writeHfAg() failed.", __FUNCTION__);
-        return -1;
-    }
-#else
     errno = 0;
     ret = write(fd, line, len);
     if (ret < 0) {
@@ -92,7 +77,6 @@ static inline int write_error_check(int fd, const char* line, int len) {
         LOGE("%s: write() only wrote %d of %d bytes", __FUNCTION__, ret, len);
         return -1;
     }
-#endif /* USE_BM3_BLUETOOTH */
     return 0;
 }
 
@@ -115,14 +99,11 @@ static int send_line(int fd, const char* line) {
 static const char* get_line(int fd, char *buf, int len, int timeout_ms,
                             int *err) {
     char *bufit=buf;
-#ifndef USE_BM3_BLUETOOTH
     int fd_flags = fcntl(fd, F_GETFL, 0);
     struct pollfd pfd;
-#endif
 
 again:
     *bufit = 0;
-#ifndef USE_BM3_BLUETOOTH
     pfd.fd = fd;
     pfd.events = POLLIN;
     *err = errno = 0;
@@ -135,6 +116,7 @@ again:
     if (ret == 0) {
         return NULL;
     }
+
     if (pfd.revents & (POLLHUP | POLLERR | POLLNVAL)) {
         LOGW("RFCOMM poll() returned  success (%d), "
              "but with an unexpected revents bitmask: %#x\n", ret, pfd.revents);
@@ -142,19 +124,9 @@ again:
         *err = errno;
         return NULL;
     }
-#else
-    // If no unprocessed data, do a [potentially blocking] RFCOMM read
-    if ( g_rfcomm_read_buf_cur >= (g_rfcomm_read_buf + g_rfcomm_read_buf_len) ) {
-        if ( NULL == readHfAg(timeout_ms) ) {
-            *err = g_headset_base_read_err;
-            return NULL;
-        }
-    }
-#endif /* USE_BM3_BLUETOOTH */
 
-    while ((int)(bufit - buf) < (len-1))
+    while ((int)(bufit - buf) < len)
     {
-#ifndef USE_BM3_BLUETOOTH
         errno = 0;
         int rc = read(fd, bufit, 1);
 
@@ -171,18 +143,7 @@ again:
             LOGE("read() error %s (%d)", strerror(errno), errno);
             return NULL;
         }
-#else
-        /* Simulate character-at-a-time reads from our internal buffer */
-        if ( g_rfcomm_read_buf_cur < (g_rfcomm_read_buf + g_rfcomm_read_buf_len) ) {
-            *bufit = *g_rfcomm_read_buf_cur;
-            g_rfcomm_read_buf_cur++;
-        } else {
-            /* Hit end of buffer.  Reset global buffer cursor and break. */
-            g_rfcomm_read_buf_cur = g_rfcomm_read_buf;
-            g_rfcomm_read_buf_len = 0;
-            break;
-        }
-#endif /* USE_BM3_BLUETOOTH */
+
 
         if (*bufit=='\xd') {
             break;
@@ -310,23 +271,6 @@ static jint connectAsyncNative(JNIEnv *env, jobject obj) {
         return 0;
     }
 
-#ifdef USE_BM3_BLUETOOTH
-    LOGI("Establishing a RFCOMM connection via D-Bus...");
-    // RFCOMM channel numbers are used to signal the profile for BM3-based operation: 5 = HFP, 6 = HSP.
-    if (5 == nat->rfcomm_channel &&
-        requestOutgoingHfAgConnection(BM3_DBUS_HSHF_HFAG_PROFILE_PATH, nat->c_address)) {
-        LOGI("Successful HFP RFCOMM connection via D-Bus...");
-    } else if (6 == nat->rfcomm_channel &&
-               requestOutgoingHfAgConnection(BM3_DBUS_HSHF_HSAG_PROFILE_PATH, nat->c_address)) {
-        LOGI("Successful HSP RFCOMM connection via D-Bus...");
-    } else {
-        LOGI("Unsuccessful RFCOMM via D-Bus (timeout?)...");
-        return JNI_FALSE;
-    }
-
-    nat->rfcomm_connected = 1;
-    return JNI_TRUE;
-#else
     if (nat->rfcomm_sock < 0) {
         int lm;
 
@@ -390,7 +334,6 @@ static jint connectAsyncNative(JNIEnv *env, jobject obj) {
             }
         } // fcntl(nat->rfcomm_sock ...)
     } // if (nat->rfcomm_sock_flags >= 0)
-#endif /* USE_BM3_BLUETOOTH */
 #endif
     return -1;
 }
@@ -409,51 +352,6 @@ static jint waitForAsyncConnectNative(JNIEnv *env, jobject obj,
         return 1;
     }
 
-#ifdef USE_BM3_BLUETOOTH
-    if (JNI_FALSE == connectAsyncNative(env, obj)) {
-        LOGI("Failed to re-open RFCOMM socket!");
-        return -1;
-    }
-
-    LOGV("... Waiting for session %s to establish connection.", g_session_path);
-    /* wait up to timeout_ms to establish connection */
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    ts.tv_sec += timeout_ms/1000;
-    ts.tv_nsec += (timeout_ms%1000)*1000000;
-    if (ts.tv_nsec > 1000000000L) {
-        ts.tv_sec++;
-        ts.tv_nsec -= 1000000000L;
-    }
-
-    if (0 == pthread_mutex_lock(&g_session_created_mutex)) {
-        while (g_session_created_success < 0) {
-            if (0 != pthread_cond_timedwait(&g_session_created_cond, &g_session_created_mutex, &ts)) {
-                LOGV("HSHF outgoing session connect error (timeout?).");
-                g_session_created_success = 0;
-                break;
-            }
-        }
-
-        pthread_mutex_unlock(&g_session_created_mutex);
-    } else {
-        LOGE("HSHF session connection mutex lock failure!");
-        free(g_session_path);
-        g_session_path = NULL;
-        return -1;
-    }
-
-    if (g_session_created_success == 1) {
-        LOGV("... Session %s connected.", g_session_path);
-    } else if (g_session_created_success == 0) {
-        LOGV("... Session %s connection failure.", g_session_path);
-        free(g_session_path);
-        g_session_path = NULL;
-        return -1;
-    }
-
-    return 1;
-#else
     if (nat->rfcomm_sock >= 0 && nat->rfcomm_connected == 0) {
         LOGI("Re-opening RFCOMM socket.");
         close(nat->rfcomm_sock);
@@ -543,7 +441,6 @@ static jint waitForAsyncConnectNative(JNIEnv *env, jobject obj,
     }
     else LOGE("RFCOMM socket file descriptor %d is bad!",
               nat->rfcomm_sock);
-#endif /* USE_BM3_BLUETOOTH */
 #endif
     return -1;
 }
@@ -552,22 +449,11 @@ static void disconnectNative(JNIEnv *env, jobject obj) {
     LOGV(__FUNCTION__);
 #ifdef HAVE_BLUETOOTH
     native_data_t *nat = get_native_data(env, obj);
-
-#ifdef USE_BM3_BLUETOOTH
-    disconnectHfAgConnection();
-    nat->rfcomm_sock = -1;
-    nat->rfcomm_connected = 0;
-
-    /* Reset global read buffer cursor and length. */
-    g_rfcomm_read_buf_cur = g_rfcomm_read_buf;
-    g_rfcomm_read_buf_len = 0;
-#else
     if (nat->rfcomm_sock >= 0) {
         close(nat->rfcomm_sock);
         nat->rfcomm_sock = -1;
         nat->rfcomm_connected = 0;
     }
-#endif /* USE_BM3_BLUETOOTH */
 #endif
 }
 
