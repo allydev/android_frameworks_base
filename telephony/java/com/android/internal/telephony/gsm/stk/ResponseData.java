@@ -120,6 +120,12 @@ class GetInkeyInputResponseData extends ResponseData {
         }
 
         // length - one more for data coding scheme.
+        // As per ETSI 102.220 Sec7.1.2, if the total length is greater
+        // than 0x7F, it should be coded in two bytes and the first byte
+        // should be 0x81.
+        if (data.length + 1 > 0x7F) {
+            buf.write(0x81);
+        }
         buf.write(data.length + 1);
 
         // data coding scheme
