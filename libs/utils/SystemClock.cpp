@@ -54,7 +54,7 @@ int setCurrentSecureTime(const time_t t)
         LOGW("Unable to open /dev/rtc1: %s\n", strerror(errno));
         return -1;
     }
-    localtime_r(&t,(struct tm*)&rtc_tm);
+    gmtime_r(&t,(struct tm*)&rtc_tm);
     res = ioctl(fd,RTC_SET_TIME,&rtc_tm);
     if(res < 0) {
         LOGW("Unable to set /dev/rtc1 to : %s\n", strerror(errno));
