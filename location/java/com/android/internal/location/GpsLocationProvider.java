@@ -1124,7 +1124,8 @@ public class GpsLocationProvider extends ILocationProvider.Stub {
 		Log.i(TAG, "requestorId: " + requestorId +
 				", text: " + text +
 				", requestorIdEncoding: " + requestorIdEncoding +
-				", textEncoding: " + textEncoding);
+                                ", textEncoding: " + textEncoding +
+                                ", extras: " + extras);
 		
 		GpsNiNotification notification = new GpsNiNotification();
 		
@@ -1157,6 +1158,7 @@ public class GpsLocationProvider extends ILocationProvider.Stub {
 		
 		for (Entry<Object, Object> ent : extraProp.entrySet())
 		{
+		        // Log.i(TAG, ent.getKey() + "->" + ent.getValue());
 			bundle.putString((String) ent.getKey(), (String) ent.getValue());
 		}		
 		
