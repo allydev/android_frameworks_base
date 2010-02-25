@@ -23,11 +23,13 @@ import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.res.Resources;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.os.AsyncResult;
 import android.os.Handler;
@@ -43,6 +45,7 @@ import android.provider.Settings.SettingNotFoundException;
 import android.provider.Telephony.Intents;
 import android.telephony.ServiceState;
 import android.telephony.SignalStrength;
+import android.telephony.TelephonyManager;
 import android.telephony.gsm.GsmCellLocation;
 import android.text.TextUtils;
 import android.util.Config;
@@ -111,6 +114,12 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
      * handlePollStateResult to store CGREG roaming result.
      */
     private boolean mDataRoaming = false;
+
+    /**
+     * Mark when service state is in emergency call only mode
+     */
+    private boolean mEmergencyOnly = false;
+    private boolean mNewEmergencyOnly = false;
 
     private RegistrantList gprsAttachedRegistrants = new RegistrantList();
     private RegistrantList gprsDetachedRegistrants = new RegistrantList();
@@ -181,7 +190,15 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
     private ToneGenerator mToneGenerator;
     private AlertDialog networkDialog;
 
-
+    private BroadcastReceiver mIntentReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(Intent.ACTION_LOCALE_CHANGED)) {
+                // update emergency string whenever locale changed
+                updateSpnDisplay();
+            }
+        }
+    };
 
     private ContentObserver mAutoTimeObserver = new ContentObserver(new Handler()) {
         @Override
@@ -228,6 +245,11 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
                 mAutoTimeObserver);
         setSignalStrengthDefaultValues();
         mNeedToRegForSimLoaded = true;
+
+        // Monitor locale change
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_LOCALE_CHANGED);
+        phone.getContext().registerReceiver(mIntentReceiver, filter);
     }
 
     public void dispose() {
@@ -567,37 +589,48 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
     }
 
     public void updateSpnDisplay() {
-        int rule = phone.mSIMRecords.getDisplayRule(ss.getOperatorNumeric());
-        String pnn = phone.mSIMRecords.getPnnLongName();
-        String spn = null;
-        String plmn = ss.getOperatorAlphaLong();
+        try {
+              int rule = phone.mSIMRecords.getDisplayRule(ss.getOperatorNumeric());
+              String pnn = phone.mSIMRecords.getPnnLongName();
+              String spn = null;
+              String plmn = ss.getOperatorAlphaLong();
 
-        //SPN name should be displayed only when the UE is registered to a
-        //Network.
-        if (ss.getState() == ServiceState.STATE_IN_SERVICE) {
-            spn = phone.mSIMRecords.getServiceProviderName();
-        }
+              //SPN name should be displayed only when the UE is registered to a
+              //Network.
+              if (ss.getState() == ServiceState.STATE_IN_SERVICE) {
+                  spn = phone.mSIMRecords.getServiceProviderName();
+              }
 
-        if ((phone.mSIMRecords.isEonsEnabled()) && pnn != null) {
-            plmn = pnn;
+              // For emergency calls only, pass the EmergencyCallsOnly string via EXTRA_PLMN
+              if (mEmergencyOnly && cm.getRadioState().isOn()) {
+                  plmn = Resources.getSystem().
+                  getText(com.android.internal.R.string.emergency_calls_only).toString();
+              } else if ((phone.mSIMRecords.isEonsEnabled()) && pnn != null) {
+                  plmn = pnn;
+              }
+
+              if (rule != curSpnRule
+                    || !TextUtils.equals(spn, curSpn)
+                    || !TextUtils.equals(plmn, curPlmn)) {
+                  boolean showSpn = mEmergencyOnly
+                    || (rule & SIMRecords.SPN_RULE_SHOW_SPN) == SIMRecords.SPN_RULE_SHOW_SPN;
+                  boolean showPlmn =
+                    (rule & SIMRecords.SPN_RULE_SHOW_PLMN) == SIMRecords.SPN_RULE_SHOW_PLMN;
+
+                  Intent intent = new Intent(Intents.SPN_STRINGS_UPDATED_ACTION);
+                  intent.putExtra(Intents.EXTRA_SHOW_SPN, showSpn);
+                  intent.putExtra(Intents.EXTRA_SPN, spn);
+                  intent.putExtra(Intents.EXTRA_SHOW_PLMN, showPlmn);
+                  intent.putExtra(Intents.EXTRA_PLMN, plmn);
+                  phone.getContext().sendStickyBroadcast(intent);
+              }
+
+              curSpnRule = rule;
+              curSpn = spn;
+              curPlmn = plmn;
+        } catch(Exception e) {
+              Log.e(LOG_TAG,"updateSpnDisplay: Exception " + e);
         }
-        if (rule != curSpnRule
-                || !TextUtils.equals(spn, curSpn)
-                || !TextUtils.equals(plmn, curPlmn)) {
-            boolean showSpn =
-                (rule & SIMRecords.SPN_RULE_SHOW_SPN) == SIMRecords.SPN_RULE_SHOW_SPN;
-            boolean showPlmn =
-                (rule & SIMRecords.SPN_RULE_SHOW_PLMN) == SIMRecords.SPN_RULE_SHOW_PLMN;
-            Intent intent = new Intent(Intents.SPN_STRINGS_UPDATED_ACTION);
-            intent.putExtra(Intents.EXTRA_SHOW_SPN, showSpn);
-            intent.putExtra(Intents.EXTRA_SPN, spn);
-            intent.putExtra(Intents.EXTRA_SHOW_PLMN, showPlmn);
-            intent.putExtra(Intents.EXTRA_PLMN, plmn);
-            phone.getContext().sendStickyBroadcast(intent);
-        }
-        curSpnRule = rule;
-        curSpn = spn;
-        curPlmn = plmn;
     }
 
     /**
@@ -685,6 +718,13 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
                     }
 
                     newSS.setState (regCodeToServiceState(regState));
+
+                    if (regState == 10 || regState == 12 || regState == 13 || regState == 14) {
+                        mNewEmergencyOnly = true;
+                    } else {
+                        mNewEmergencyOnly = false;
+                    }
+
                     // LAC and CID are -1 if not avail
                     newCellLoc.setLacAndCid(lac, cid);
                 break;
@@ -896,6 +936,8 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
 
         boolean hasLacChanged = (newCellLoc.getLac() != cellLoc.getLac());
 
+        boolean hasEmergencyOnlyChanged = mNewEmergencyOnly != mEmergencyOnly;
+
         ServiceState tss;
         tss = ss;
         ss = newSS;
@@ -906,6 +948,23 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
         GsmCellLocation tcl = cellLoc;
         cellLoc = newCellLoc;
         newCellLoc = tcl;
+
+        mEmergencyOnly = mNewEmergencyOnly;
+
+
+        // Add an event log when network type switched
+        // TODO: we may add filtering to reduce the event logged,
+        // i.e. check preferred network setting, only switch to 2G, etc
+        if (hasNetworkTypeChanged) {
+            int cid = -1;
+            GsmCellLocation loc = ((GsmCellLocation)phone.getCellLocation());
+            if (loc != null) cid = loc.getCid();
+            EventLog.List val = new EventLog.List(cid, networkType, newNetworkType);
+            EventLog.writeEvent(TelephonyEventLog.EVENT_LOG_GSM_RAT_SWITCHED, val);
+            Log.d(LOG_TAG,
+                    "RAT switched " + networkTypeToString(networkType) + " -> "
+                    + networkTypeToString(newNetworkType) + " at cell " + cid);
+        }
 
         gprsState = newGPRSState;
         networkType = newNetworkType;
@@ -993,7 +1052,12 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
 
             Log.i(LOG_TAG,"EONS: ServiceState changed,calling checkEonsAndUpdateSpnDisplay()");
             checkEonsAndUpdateSpnDisplay();
+
             phone.notifyServiceStateChanged(ss);
+        }
+
+        if (hasChanged || hasEmergencyOnlyChanged) {
+            updateSpnDisplay();
         }
 
         if (hasGprsAttached) {
@@ -1428,6 +1492,10 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
             case 2: // 2 is "searching"
             case 3: // 3 is "registration denied"
             case 4: // 4 is "unknown" no vaild in current baseband
+            case 10:// same as 0, but indicates that emergency call is possible.
+            case 12:// same as 2, but indicates that emergency call is possible.
+            case 13:// same as 3, but indicates that emergency call is possible.
+            case 14:// same as 4, but indicates that emergency call is possible.
                 return ServiceState.STATE_OUT_OF_SERVICE;
 
             case 1:
