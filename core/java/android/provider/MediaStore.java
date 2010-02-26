@@ -260,11 +260,7 @@ public final class MediaStore {
             }
         }
         /**
-         * This method ensure thumbnails associated with origId are generated and decode the byte
-         * stream from database (MICRO_KIND) or file (MINI_KIND).
-         *
-         * Special optimization has been done to avoid further IPC communication for MICRO_KIND
-         * thumbnails.
+         * This method ensure thumbnails associated with origId are generated
          *
          * @param cr ContentResolver
          * @param origId original image or video id
@@ -277,93 +273,31 @@ public final class MediaStore {
                 BitmapFactory.Options options, Uri baseUri, boolean isVideo) {
             Bitmap bitmap = null;
             String filePath = null;
-            // Log.v(TAG, "getThumbnail: origId="+origId+", kind="+kind+", isVideo="+isVideo);
-            // some optimization for MICRO_KIND: if the magic is non-zero, we don't bother
-            // querying MediaProvider and simply return thumbnail.
-            if (kind == MICRO_KIND) {
-                MiniThumbFile thumbFile = MiniThumbFile.instance(baseUri);
-                if (thumbFile.getMagic(origId) != 0) {
-                    byte[] data = new byte[MiniThumbFile.BYTES_PER_MINTHUMB];
-                    if (thumbFile.getMiniThumbFromFile(origId, data) != null) {
-                        bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-                        if (bitmap == null) {
-                            Log.w(TAG, "couldn't decode byte array.");
-                        }
-                    }
-                    return bitmap;
-                }
-            }
-
             Cursor c = null;
+            // Log.v(TAG, "getThumbnail: origId="+origId+", kind="+kind+", isVideo="+isVideo);
+
             try {
-                Uri blockingUri = baseUri.buildUpon().appendQueryParameter("blocking", "1")
-                        .appendQueryParameter("orig_id", String.valueOf(origId)).build();
-                c = cr.query(blockingUri, PROJECTION, null, null, null);
-                // This happens when original image/video doesn't exist.
-                if (c == null) return null;
-
-                // Assuming thumbnail has been generated, at least original image exists.
-                if (kind == MICRO_KIND) {
-                    MiniThumbFile thumbFile = MiniThumbFile.instance(baseUri);
-                    byte[] data = new byte[MiniThumbFile.BYTES_PER_MINTHUMB];
-                    if (thumbFile.getMiniThumbFromFile(origId, data) != null) {
-                        bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-                        if (bitmap == null) {
-                            Log.w(TAG, "couldn't decode byte array.");
-                        }
-                    }
-                } else if (kind == MINI_KIND) {
-                    if (c.moveToFirst()) {
-                        ParcelFileDescriptor pfdInput;
-                        Uri thumbUri = null;
-                        try {
-                            long thumbId = c.getLong(0);
-                            filePath = c.getString(1);
-                            thumbUri = ContentUris.withAppendedId(baseUri, thumbId);
-                            pfdInput = cr.openFileDescriptor(thumbUri, "r");
-                            bitmap = BitmapFactory.decodeFileDescriptor(
-                                    pfdInput.getFileDescriptor(), null, options);
-                            pfdInput.close();
-                        } catch (FileNotFoundException ex) {
-                            Log.e(TAG, "couldn't open thumbnail " + thumbUri + "; " + ex);
-                        } catch (IOException ex) {
-                            Log.e(TAG, "couldn't open thumbnail " + thumbUri + "; " + ex);
-                        } catch (OutOfMemoryError ex) {
-                            Log.e(TAG, "failed to allocate memory for thumbnail "
-                                    + thumbUri + "; " + ex);
-                        }
-                    }
-                } else {
-                    throw new IllegalArgumentException("Unsupported kind: " + kind);
-                }
-
-                // We probably run out of space, so create the thumbnail in memory.
-                if (bitmap == null) {
-                    Log.v(TAG, "We probably run out of space, so create the thumbnail in memory.");
-
-                    Uri uri = Uri.parse(
+                Uri uri = Uri.parse(
                             baseUri.buildUpon().appendPath(String.valueOf(origId))
                                     .toString().replaceFirst("thumbnails", "media"));
-                    if (filePath == null) {
-                        if (c != null) c.close();
-                        c = cr.query(uri, PROJECTION, null, null, null);
-                        if (c == null || !c.moveToFirst()) {
-                            return null;
-                        }
-                        filePath = c.getString(1);
-                    }
-                    if (isVideo) {
-                        bitmap = ThumbnailUtil.createVideoThumbnail(filePath);
-                        if (kind == MICRO_KIND) {
-                            bitmap = ThumbnailUtil.extractMiniThumb(bitmap,
+
+                c = cr.query(uri, PROJECTION, null, null, null);
+                if (c == null || !c.moveToFirst()) {
+                    return null;
+                }
+                filePath = c.getString(1);
+
+                if (isVideo) {
+                    bitmap = ThumbnailUtil.createVideoThumbnail(filePath);
+                    if (kind == MICRO_KIND) {
+                        bitmap = ThumbnailUtil.extractMiniThumb(bitmap,
                                     ThumbnailUtil.MINI_THUMB_TARGET_SIZE,
                                     ThumbnailUtil.MINI_THUMB_TARGET_SIZE,
                                     ThumbnailUtil.RECYCLE_INPUT);
-                        }
-                    } else {
-                        bitmap = ThumbnailUtil.createImageThumbnail(cr, filePath, uri, origId,
-                                kind, false);
                     }
+                } else {
+                    bitmap = ThumbnailUtil.createImageThumbnail(cr, filePath, uri, origId,
+                                kind, false);
                 }
             } catch (SQLiteException ex) {
                 Log.w(TAG, ex);
