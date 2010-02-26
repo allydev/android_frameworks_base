@@ -264,6 +264,8 @@ public class CDMAPhone extends PhoneBase {
             this.mSST = null;
             this.mEriManager = null;
             this.mStkService = null;
+            removeCallbacks(mExitEcmRunnable);
+            this.mExitEcmRunnable = null;
     }
 
     protected void finalize() {
