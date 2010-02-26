@@ -303,9 +303,10 @@ static jint android_hardware_fmradio_FmReceiverJNI_getBufferNative
     if(err < 0){
         return FM_JNI_FAILURE;
     }
-    if(isCopy == JNI_TRUE){
-        env->ReleaseBooleanArrayElements(buff, bool_buffer, 0);
-    }
+
+    /* Always copy buffer and free up the memory */
+    env->ReleaseBooleanArrayElements(buff, bool_buffer, 0);
+
     return v4l2_buf.bytesused;
 }
 

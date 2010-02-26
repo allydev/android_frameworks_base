@@ -279,10 +279,13 @@ public class FmReceiver extends FmTransceiver
    *
    */
    public FmReceiver(String devicePath,
-                     FmRxEvCallbacksAdaptor callback){
+                     FmRxEvCallbacksAdaptor callback) throws InstantiationException {
       mControl = new FmRxControls();
       mRxEvents = new FmRxEventListner();
-      acquire(devicePath);
+
+      if ( !acquire(devicePath))
+        throw new InstantiationException("Unable to open device descriptor");
+
       registerClient(callback);
       mRdsData = new FmRxRdsData(sFd);
    }
