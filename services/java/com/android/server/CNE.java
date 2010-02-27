@@ -546,9 +546,13 @@ public final class CNE
         public void startConnection(){
             Log.d(LOG_TAG, "DefaultConnection startConnection called");
             mLinkNotifier = new MyLinkNotifier();
-            mLinkProvider = new LinkProvider(LinkProvider.ROLE_DEFAULT,
-                                             mLinkReqs,
-                                             mLinkNotifier);
+            try{
+                mLinkProvider = new LinkProvider(LinkProvider.ROLE_DEFAULT,
+                                                 mLinkReqs,
+                                                 mLinkNotifier);
+            }catch(Exception e){
+                Log.e(LOG_TAG, "LinkProvider Creation threw and excetion"+e);
+            }
             if(mLinkProvider != null) {
                 mLinkProvider.getLink();
             }
@@ -841,14 +845,18 @@ public final class CNE
 
                 // send the init request to lowerlayer cne
                 sendInitReq();
-                //send DefaultNwPref
-                sendDefaultNwPref(mNetworkPreference);
 
-                /* start the default connection now */
-                if(mDefaultConn != null){
-                    mDefaultConn.startConnection();
-                }else{
-                    Log.e(LOG_TAG,"mDefaultConn is null");
+                /* wait until CNE gets created*/
+                synchronized(mService){
+                    /* send DefaultNwPref */
+                    sendDefaultNwPref(mNetworkPreference);
+
+                    /* start the default connection now */
+                    if(mDefaultConn != null){
+                        mDefaultConn.startConnection();
+                    }else{
+                        Log.e(LOG_TAG,"mDefaultConn is null");
+                    }
                 }
 
                 int length = 0;
@@ -926,16 +934,11 @@ public final class CNE
         mContext = context;
 
         mService = conn;
-
         mSenderThread = new HandlerThread("CNESender");
         mSenderThread.start();
 
         Looper looper = mSenderThread.getLooper();
         mSender = new CNESender(looper);
-
-        mReceiver = new CNEReceiver();
-        mReceiverThread = new Thread(mReceiver, "CNEReceiver");
-        mReceiverThread.start();
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_BATTERY_CHANGED);
@@ -962,7 +965,9 @@ public final class CNE
                         | PhoneStateListener.LISTEN_CALL_STATE
                         | PhoneStateListener.LISTEN_DATA_CONNECTION_STATE
                         | PhoneStateListener.LISTEN_DATA_ACTIVITY);
-
+        mReceiver = new CNEReceiver();
+        mReceiverThread = new Thread(mReceiver, "CNEReceiver");
+        mReceiverThread.start();
 
     }
 

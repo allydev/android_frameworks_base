@@ -101,6 +101,7 @@ public class ConnectivityService extends IConnectivityManager.Stub {
     private Handler mHandler;
 
     private CNE mCneService = null;
+    private boolean mCneStarted = false;
 
     // list of DeathRecipients used to make sure features are turned off when
     // a process dies
@@ -307,14 +308,6 @@ public class ConnectivityService extends IConnectivityManager.Stub {
 
         // Constructing this starts it too
         mWifiWatchdogService = new WifiWatchdogService(context, wst);
-        if(SystemProperties.get(CNE.UseCne,"false").equals("true") ||
-             SystemProperties.get(CNE.UseCne,"false").equals("TRUE")) {
-          Log.v(TAG, "CNE starting up");
-          mCneService = new CNE(context, this);
-          /* send the mNetworkPreference down to cne */
-          mCneService.sendDefaultNwPref2Cne(mNetworkPreference);
-        }
-
     }
 
     /**
@@ -1390,7 +1383,32 @@ public class ConnectivityService extends IConnectivityManager.Stub {
         }
     }
 
-    /* CNE related APIs */
+    /* CNE related methods. */
+    public void startCne(){
+        if(!mCneStarted){
+            if(SystemProperties.get(CNE.UseCne,"false").equals("true") ||
+                 SystemProperties.get(CNE.UseCne,"false").equals("TRUE")) {
+                    Log.v(TAG, "CNE starting up");
+                    /* sychronised to wait until cne creation so that
+                     * defualt connection can start.
+                     */
+                    synchronized(this){
+                        mCneService = new CNE(mContext, this);
+                        /* send the mNetworkPreference down to cne */
+                        mCneService.sendDefaultNwPref2Cne(mNetworkPreference);
+                        mCneStarted = true;
+                    }
+            }else{
+                Log.v(TAG, "CNE is disabled.");
+            }
+        }else{
+            Log.e(TAG, "CNE already Started");
+        }
+    }
+
+    public boolean isCneStarted(){
+        return mCneStarted;
+    }
     /** {@hide} */
     public boolean bringUpRat(int ratType){
 
