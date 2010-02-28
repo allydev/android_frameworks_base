@@ -91,6 +91,9 @@
          the SIM card. -->
     <string name="needPuk">Your SIM card is PUK-locked. Type the PUK code to unlock it.</string>
     <string name="needPuk2">Type PUK2 to unblock SIM card.</string>
+    <!-- Displayed when a SIM PIN/PUK is entered incorrectly. -->
+    <string name="pinpuk_attempts">\nAttempts Remaining :</string>
+
 
     <!-- Displayed as the title for a success/failure report enabling/disabling caller ID. -->
     <string name="ClipMmi">Incoming Caller ID</string>
@@ -1429,6 +1432,9 @@
          to unlock the keyguard.  Displayed in one line in a large font.  -->
     <string name="keyguard_password_wrong_pin_code">Incorrect PIN code!</string>
 
+    <!-- Notification telling the user that the PIN1 they entered is valid -->
+    <string name="keyguard_pin_accepted">Code Accepted!</string>
+
     <!-- Instructions telling the user how to unlock the phone. -->
     <string name="keyguard_label_text">To unlock, press Menu then 0.</string>
 
@@ -1494,7 +1500,7 @@
          PUK locked (Pin Unlock Kode) -->
     <string name="lockscreen_sim_puk_locked_message">SIM card is PUK-locked.</string>
     <!-- Shown in the lock screen when the SIM has become PUK locked and the user must call customer care to unlock it. -->
-    <string name="lockscreen_sim_puk_locked_instructions">Please see the User Guide or contact Customer Care.</string>
+    <string name="lockscreen_sim_puk_locked_instructions">PIN1 Blocked. Enter PUK1.\nor\nPlease see the User Guide/contact Customer Care.</string>
 
     <!-- Shown in the lock screen to tell the user that their SIM/RUIM is locked and they must unlock it. -->
     <string name="lockscreen_pin_locked_message">SIM/RUIM card is locked.</string>
@@ -1503,6 +1509,12 @@
          whether it is valid, and to unlock the sim if it is valid.  we display a
          progress dialog in the meantime.  this is the emssage. -->
     <string name="lockscreen_sim_unlock_progress_dialog_message">Unlocking SIM card\u2026</string>
+
+    <!-- Instructions telling user to enter PUK to unblock SIM -->
+    <string name="lockscreen_sim_pin_blocked">PIN1 Blocked! Enter PUK1 to unblock PIN1.</string>
+
+    <!-- Instructions telling user to enter PUK to unblock RUIM Card -->
+    <string name="lockscreen_ruim_pin_blocked">PIN1 Blocked! Enter PUK1 to unblock PIN1.</string>
 
     <!-- Shown in the lock screen when there is RUIM card IO error. -->
     <string name="lockscreen_ruim_error_message_short">Invalid Card.</string>
@@ -1524,7 +1536,7 @@
          PUK locked (Pin Unlock Kode) -->
     <string name="lockscreen_ruim_puk_locked_message">RUIM card is PUK-locked.</string>
     <!-- Shown in the lock screen when the RUIM has become PUK locked and the user must call customer care to unlock it. -->
-    <string name="lockscreen_ruim_puk_locked_instructions">Please see the User Guide or contact Customer Care.</string>
+    <string name="lockscreen_ruim_puk_locked_instructions">PIN1 Blocked. Enter PUK1 to unblock PIN1.\nOR\nPlease see the User Guide\contact Customer Care.</string>
 
     <!-- For the unlock screen, Information message shown in dialog when user has too many failed attempts -->
     <string name="lockscreen_too_many_failed_attempts_dialog_message">

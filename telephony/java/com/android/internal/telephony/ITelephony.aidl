@@ -263,5 +263,11 @@ interface ITelephony {
      * Return true if an ICC card is present
      */
     boolean hasIccCard();
+
+    /**
+     * Gets the number of attempts remaining for PIN1/PUK1 unlock.
+     */
+    int getIccPin1RetryCount();
+
 }
 
