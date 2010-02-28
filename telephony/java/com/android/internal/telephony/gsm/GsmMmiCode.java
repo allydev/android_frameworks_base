@@ -932,6 +932,15 @@ public final class GsmMmiCode  extends Handler implements MmiCode {
                         if (sc.equals(SC_PUK) || sc.equals(SC_PUK2)) {
                             sb.append(context.getText(
                                     com.android.internal.R.string.badPuk));
+			    // Get the No. of attempts remaining to unlock PUK1 from the result
+			    if (ar.result != null) {
+				int[] intArray = (int[]) ar.result;
+				if ((intArray.length > 0) && (intArray[0] >= 0)) {
+				    sb.append(context.getText(
+					    com.android.internal.R.string.pinpuk_attempts));
+				    sb.append(intArray[0]);
+				}
+			    }
                         } else {
                             sb.append(context.getText(
                                     com.android.internal.R.string.badPin));

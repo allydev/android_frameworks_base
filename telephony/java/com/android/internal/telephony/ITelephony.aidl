@@ -286,6 +286,10 @@ interface ITelephony {
      */
     String getActiveGateway(String apnType);
 
+    /**
+     * Gets the number of attempts remaining for PIN1/PUK1 unlock.
+     */
+    int getIccPin1RetryCount();
 
 }
 
