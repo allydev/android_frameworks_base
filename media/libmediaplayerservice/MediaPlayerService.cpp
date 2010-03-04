@@ -193,6 +193,7 @@ extmap FILE_EXTS [] =  {
         {".midi", SONIVOX_PLAYER},
         {".smf", SONIVOX_PLAYER},
         {".xmf", SONIVOX_PLAYER},
+        {".mxmf", SONIVOX_PLAYER},
         {".imy", SONIVOX_PLAYER},
         {".rtttl", SONIVOX_PLAYER},
         {".rtx", SONIVOX_PLAYER},
