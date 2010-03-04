@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009-2010, Code Aurora Forum. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -69,6 +69,13 @@ static jint android_hardware_fmradio_FmReceiverJNI_acquireFdNative
     if(radio_path == NULL){
         return FM_JNI_FAILURE;
     }
+    fd = open(radio_path, O_RDONLY, O_NONBLOCK);
+    if(isCopy == JNI_TRUE){
+        env->ReleaseStringUTFChars(path, radio_path);
+    }
+    if(fd < 0){
+        return FM_JNI_FAILURE;
+    }
     property_set("ctl.start", "fm_dl");
     sleep(1);
     for(i=0;i<3;i++) {
@@ -83,17 +90,11 @@ static jint android_hardware_fmradio_FmReceiverJNI_acquireFdNative
     LOGE("init_success:%d after %d seconds \n", init_success, i);
     if(!init_success) {
         property_set("ctl.stop", "fm_dl");
+	// close the fd(power down)
+	close(fd);
         return FM_JNI_FAILURE;
     }
 
-    fd = open(radio_path, O_RDONLY, O_NONBLOCK);
-    if(fd < 0){
-        return FM_JNI_FAILURE;
-    }
-
-    if(isCopy == JNI_TRUE){
-        env->ReleaseStringUTFChars(path, radio_path);
-    }
     return fd;
 }
 
