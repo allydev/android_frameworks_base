@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
- * Copyright (c) 2010, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009-10, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import com.android.internal.telephony.CommandsInterface;
 import com.android.internal.telephony.IccCard;
 import com.android.internal.telephony.IccFileHandler;
 import com.android.internal.telephony.IccRecords;
-
+import static  com.android.internal.telephony.gsm.stk.StkCmdMessage.SetupEventListConstants.*;
 import android.util.Config;
 
 import java.io.ByteArrayOutputStream;
@@ -269,6 +269,28 @@ public class StkService extends Handler implements AppInterface {
         sendTerminalResponse(cmdParams.cmdDet,resultCode, false, 0,null);
     }
 
+    /**  This function validates the events in SETUP_EVENT_LIST which are currently
+     *   supported by the Android framework. In case of SETUP_EVENT_LIST has NULL events
+     *   or no events, all the events need to be reset.
+     */
+    private boolean isValidSetupEventList(StkCmdMessage cmdMsg) {
+        boolean flag = true;
+        int eventval;
+
+        for (int i = 0; i < cmdMsg.getSetEventList().eventList.length ; i++) {
+            eventval = cmdMsg.getSetEventList().eventList[i];
+            StkLog.d(this,"Event: "+eventval);
+            switch (eventval) {
+                /* Currently android is supporting only BrowserTermination in SetupEventList */
+                case BROWSER_TERMINATION_EVENT:
+                    break;
+                default:
+                    flag = false;
+            }
+        }
+        return flag;
+    }
+
     /**
      * Handles RIL_UNSOL_STK_PROACTIVE_COMMAND unsolicited command from RIL.
      * Sends valid proactive command data to the application using intents.
@@ -278,6 +300,7 @@ public class StkService extends Handler implements AppInterface {
         StkLog.d(this, cmdParams.getCommandType().name());
 
         StkCmdMessage cmdMsg = new StkCmdMessage(cmdParams);
+        StkLog.d(this,"Received "+ cmdParams.getCommandType());
         switch (cmdParams.getCommandType()) {
         case SET_UP_MENU:
             if (removeMenu(cmdMsg.getMenu())) {
@@ -302,6 +325,15 @@ public class StkService extends Handler implements AppInterface {
             break;
         case SET_UP_IDLE_MODE_TEXT:
             sendProactiveCmdResponse(cmdParams);
+            break;
+        case SET_UP_EVENT_LIST:
+            if (isValidSetupEventList(cmdMsg)) {
+                sendTerminalResponse(cmdParams.cmdDet, ResultCode.OK, false,
+                        0, null);
+            } else {
+                sendTerminalResponse(cmdParams.cmdDet, ResultCode.BEYOND_TERMINAL_CAPABILITY,
+                        false, 0, null);
+            }
             break;
         case LAUNCH_BROWSER:
         case SELECT_ITEM:
@@ -483,6 +515,29 @@ public class StkService extends Handler implements AppInterface {
         buf.write(sourceId); // source device id
         buf.write(destinationId); // destination device id
 
+        /*
+         * Check for type of event download to be sent to UICC - Browser
+         * termination,Idle screen available, User activity, Language selection
+         * etc as mentioned under ETSI TS 102 223 section 7.5
+         */
+
+        /*
+         * Currently only Brower termination is supported. Other event download
+         * commands should be encoded similar way
+         */
+        /* TODO: eventDownload should be extended for other Envelope Commands */
+        switch (event) {
+            case BROWSER_TERMINATION_EVENT:
+                StkLog.d(sInstance, " Sending Browser termination event download to ICC");
+                tag = 0x80 | ComprehensionTlvTag.BROWSER_TERMINATION_CAUSE.value();
+                buf.write(tag);
+                // Browser Termination length should be 1 byte
+                buf.write(0x01);
+                break;
+            default:
+                break;
+        }
+
         // additional information
         if (additionalInfo != null) {
             for (byte b : additionalInfo) {
@@ -546,7 +601,7 @@ public class StkService extends Handler implements AppInterface {
 
     @Override
     public void handleMessage(Message msg) {
-
+        StkLog.d(this, "Messge received :"+msg.what);
         switch (msg.what) {
         case MSG_ID_SESSION_END:
         case MSG_ID_PROACTIVE_COMMAND:
@@ -613,8 +668,6 @@ public class StkService extends Handler implements AppInterface {
         return false;
     }
 
-
-
     private  void  handleIccRefreshReset() {
         CommandDetails cmdDet = new  CommandDetails();
 	    cmdDet.typeOfCommand = AppInterface.CommandType.SET_UP_MENU.value();
@@ -630,6 +683,13 @@ public class StkService extends Handler implements AppInterface {
 
 
 
+    private boolean isSetUpEventResponse(StkResponseMessage resMsg) {
+        if (resMsg.cmdDet.typeOfCommand == CommandType.SET_UP_EVENT_LIST.value()) {
+            return true;
+        }
+        return false;
+    }
+
     private void handleCmdResponse(StkResponseMessage resMsg) {
         // Make sure the response details match the last valid command. An invalid
         // response is a one that doesn't have a corresponding proactive command
@@ -640,8 +700,15 @@ public class StkService extends Handler implements AppInterface {
         // available for relaunch using the latest application dialog
         // (long press on the home button). Relaunching that activity can send
         // the same command's result again to the StkService and can cause it to
-        // get out of sync with the SIM.
-        if (!validateResponse(resMsg)) {
+        // get out of sync with the SIM. This can happen in case of
+        // non-interactive type Setup Event List proactive command.
+        // Stk framework would have already sent Terminal Response to Setup Event
+        // List proactive command. After sometime Stk app will send Envelope
+        // Command/Event Download. In which case, the response details doesn't
+        // match with last valid command (which are not related).
+        // However, we should allow Stk framework to send the message to ICC.
+
+        if (!validateResponse(resMsg) && !isSetUpEventResponse(resMsg)) {
             return;
         }
         ResponseData resp = null;
@@ -696,6 +763,10 @@ public class StkService extends Handler implements AppInterface {
                 // invoked by the CommandInterface call above.
                 mCurrntCmd = null;
                 return;
+            case SET_UP_EVENT_LIST:
+                eventDownload(resMsg.eventValue, DEV_ID_TERMINAL, DEV_ID_UICC,
+                        resMsg.addedInfo, false);
+                break;
             }
             break;
         case TERMINAL_CRNTLY_UNABLE_TO_PROCESS:

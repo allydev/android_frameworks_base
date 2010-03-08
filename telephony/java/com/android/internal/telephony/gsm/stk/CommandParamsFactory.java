@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
- * Copyright (c) 2010, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009-10, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import com.android.internal.telephony.IccFileHandler;
 
 import java.util.Iterator;
 import java.util.List;
+import static com.android.internal.telephony.gsm.stk.StkCmdMessage.SetupEventListConstants.*;
 
 /**
  * Factory class, used for decoding raw byte arrays, received from baseband,
@@ -111,8 +112,7 @@ class CommandParamsFactory extends Handler {
 
         // extract command type enumeration from the raw value stored inside
         // the Command Details object.
-        AppInterface.CommandType cmdType = AppInterface.CommandType
-                .fromInt(cmdDet.typeOfCommand);
+        AppInterface.CommandType cmdType = AppInterface.CommandType.fromInt(cmdDet.typeOfCommand);
         if (cmdType == null) {
             // This PROACTIVE COMMAND is presently not handled. Hence set
             // result code as BEYOND_TERMINAL_CAPABILITY in TR.
@@ -123,48 +123,51 @@ class CommandParamsFactory extends Handler {
 
         try {
             switch (cmdType) {
-            case SET_UP_MENU:
-                cmdPending = processSelectItem(cmdDet, ctlvs);
-                break;
-            case SELECT_ITEM:
-                cmdPending = processSelectItem(cmdDet, ctlvs);
-                break;
-            case DISPLAY_TEXT:
-                cmdPending = processDisplayText(cmdDet, ctlvs);
-                break;
-             case SET_UP_IDLE_MODE_TEXT:
-                 cmdPending = processSetUpIdleModeText(cmdDet, ctlvs);
-                 break;
-             case GET_INKEY:
-                cmdPending = processGetInkey(cmdDet, ctlvs);
-                break;
-             case GET_INPUT:
-                 cmdPending = processGetInput(cmdDet, ctlvs);
-                 break;
-             case SEND_DTMF:
-             case SEND_SMS:
-             case SEND_SS:
-             case SEND_USSD:
-                 cmdPending = processEventNotify(cmdDet, ctlvs);
-                 break;
-             case SET_UP_CALL:
-                 cmdPending = processSetupCall(cmdDet, ctlvs);
-                 break;
-             case REFRESH:
-                processRefresh(cmdDet, ctlvs);
-                cmdPending = false;
-                break;
-             case LAUNCH_BROWSER:
-                 cmdPending = processLaunchBrowser(cmdDet, ctlvs);
-                 break;
-             case PLAY_TONE:
-                cmdPending = processPlayTone(cmdDet, ctlvs);
-                break;
-            default:
-                // unsupported proactive commands
-                mCmdParams = new CommandParams(cmdDet);
-                sendCmdParams(ResultCode.BEYOND_TERMINAL_CAPABILITY);
-                return;
+                case SET_UP_MENU:
+                    cmdPending = processSelectItem(cmdDet, ctlvs);
+                    break;
+                case SELECT_ITEM:
+                    cmdPending = processSelectItem(cmdDet, ctlvs);
+                    break;
+                case DISPLAY_TEXT:
+                    cmdPending = processDisplayText(cmdDet, ctlvs);
+                    break;
+                case SET_UP_IDLE_MODE_TEXT:
+                    cmdPending = processSetUpIdleModeText(cmdDet, ctlvs);
+                    break;
+                case GET_INKEY:
+                    cmdPending = processGetInkey(cmdDet, ctlvs);
+                    break;
+                case GET_INPUT:
+                    cmdPending = processGetInput(cmdDet, ctlvs);
+                    break;
+                case SEND_DTMF:
+                case SEND_SMS:
+                case SEND_SS:
+                case SEND_USSD:
+                    cmdPending = processEventNotify(cmdDet, ctlvs);
+                    break;
+                case SET_UP_CALL:
+                    cmdPending = processSetupCall(cmdDet, ctlvs);
+                    break;
+                case REFRESH:
+                    processRefresh(cmdDet, ctlvs);
+                    cmdPending = false;
+                    break;
+                case LAUNCH_BROWSER:
+                    cmdPending = processLaunchBrowser(cmdDet, ctlvs);
+                    break;
+                case PLAY_TONE:
+                    cmdPending = processPlayTone(cmdDet, ctlvs);
+                    break;
+                case SET_UP_EVENT_LIST:
+                    cmdPending = processSetUpEventList(cmdDet, ctlvs);
+                    break;
+                default:
+                    // unsupported proactive commands
+                    mCmdParams = new CommandParams(cmdDet);
+                    sendCmdParams(ResultCode.BEYOND_TERMINAL_CAPABILITY);
+                    return;
             }
         } catch (ResultException e) {
             mCmdParams = new CommandParams(cmdDet);
@@ -669,25 +672,48 @@ class CommandParamsFactory extends Handler {
      * @param cmdDet Command Details object retrieved.
      * @param ctlvs List of ComprehensionTlv objects following Command Details
      *        object and Device Identities object within the proactive command
-     * @return true if the command is processing is pending and additional
-     *         asynchronous processing is required.
+     * @return false. This function always returns false meaning that the command
+     *         processing is  not pending and additional asynchronous processing
+     *         is not required.
      */
     private boolean processSetUpEventList(CommandDetails cmdDet,
             List<ComprehensionTlv> ctlvs) {
 
         StkLog.d(this, "process SetUpEventList");
-        //
-        // ComprehensionTlv ctlv = searchForTag(ComprehensionTlvTag.EVENT_LIST,
-        // ctlvs);
-        // if (ctlv != null) {
-        // try {
-        // byte[] rawValue = ctlv.getRawValue();
-        // int valueIndex = ctlv.getValueIndex();
-        // int valueLen = ctlv.getLength();
-        //
-        // } catch (IndexOutOfBoundsException e) {}
-        // }
-        return true;
+        ComprehensionTlv ctlv = searchForTag(ComprehensionTlvTag.EVENT_LIST, ctlvs);
+        if (ctlv != null) {
+            try {
+                byte[] rawValue = ctlv.getRawValue();
+                int valueIndex = ctlv.getValueIndex();
+                int valueLen = ctlv.getLength();
+                int[] eventList = new int[valueLen];
+                int eventValue = -1;
+                int i = 0;
+                while (valueLen > 0) {
+                    eventValue = rawValue[valueIndex] & 0xff;
+                    valueIndex++;
+                    valueLen--;
+
+                    switch (eventValue) {
+                        case USER_ACTIVITY_EVENT:
+                        case IDLE_SCREEN_AVAILABLE_EVENT:
+                        case LANGUAGE_SELECTION_EVENT:
+                        case BROWSER_TERMINATION_EVENT:
+                        case BROWSING_STATUS_EVENT:
+                            eventList[i] = eventValue;
+                            i++;
+                            break;
+                        default:
+                            break;
+                    }
+
+                }
+                mCmdParams = new SetEventListParams(cmdDet, eventList);
+            } catch (IndexOutOfBoundsException e) {
+                StkLog.d(this, " IndexOutofBoundException in processSetUpEventList");
+            }
+        }
+        return false;
     }
 
     /**

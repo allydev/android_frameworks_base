@@ -32,6 +32,14 @@ public interface AppInterface {
     public static final String STK_SESSION_END_ACTION =
                                     "android.intent.action.stk.session_end";
 
+    //This is broadcasted from BrowserActivity when Browser exists
+    public static final String BROWSER_TERMINATE_ACTION =
+                                   "android.intent.action.stk.browser_terminate_action";
+
+    //This is used if Browser termination was erroneous
+    public static final String BROWSER_TERMINATION_CAUSE =
+                                   "browser_termination_cause";
+
     /*
      * Callback function from app to telephony to pass a result code and user's
      * input back to the SIM.
