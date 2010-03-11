@@ -352,7 +352,6 @@ public:
         virtual void unregisterBuffers();
         virtual sp<OverlayRef> createOverlay(uint32_t w, uint32_t h,
                 int32_t format);
-        virtual void releaseOverlay();
 
     protected:
         friend class LayerBaseClient;

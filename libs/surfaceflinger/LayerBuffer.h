@@ -196,8 +196,6 @@ private:
         
         virtual sp<OverlayRef> createOverlay(
                 uint32_t w, uint32_t h, int32_t format);
-        virtual void releaseOverlay();
-
     private:
         sp<LayerBuffer> getOwner() const {
             return static_cast<LayerBuffer*>(Surface::getOwner().get());

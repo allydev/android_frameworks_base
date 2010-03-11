@@ -125,12 +125,6 @@ public:
         remote()->transact(CREATE_OVERLAY, data, &reply);
         return OverlayRef::readFromParcel(reply);
     }
-    virtual void releaseOverlay()
-    {
-        Parcel data, reply;
-        data.writeInterfaceToken(ISurface::getInterfaceDescriptor());
-        remote()->transact(RELEASE_OVERLAY, data, &reply);
-    }
 };
 
 IMPLEMENT_META_INTERFACE(Surface, "android.ui.ISurface");
@@ -181,11 +175,6 @@ status_t BnSurface::onTransact(
             int f = data.readInt32();
             sp<OverlayRef> o = createOverlay(w, h, f);
             return OverlayRef::writeToParcel(reply, o);
-        } break;
-        case RELEASE_OVERLAY: {
-            CHECK_INTERFACE(ISurface, data, reply);
-            releaseOverlay();
-            return NO_ERROR;
         } break;
         default:
             return BBinder::onTransact(code, data, reply, flags);
