@@ -212,7 +212,10 @@ public class HardwareService extends IHardwareService.Stub {
             }
 
             synchronized (mVibrations) {
-                removeVibrationLocked(token);
+                final Vibration previousVibration = removeVibrationLocked(token);
+                if (previousVibration != null) {
+                    token.unlinkToDeath(previousVibration, 0);
+                }
                 doCancelVibrateLocked();
                 if (repeat >= 0) {
                     mVibrations.addFirst(vib);
@@ -244,6 +247,8 @@ public class HardwareService extends IHardwareService.Stub {
                     doCancelVibrateLocked();
                     startNextVibrationLocked();
                 }
+               if (mCurrentVibration != null)
+                   mCurrentVibration.mToken.unlinkToDeath(mCurrentVibration, 0);
             }
         }
         finally {
