@@ -812,11 +812,6 @@ sp<OverlayRef> LayerBaseClient::Surface::createOverlay(
         uint32_t w, uint32_t h, int32_t format) 
 {
     return NULL;
-}
-
-void LayerBaseClient::Surface::releaseOverlay()
-{
-
 };
 
 // ---------------------------------------------------------------------------
