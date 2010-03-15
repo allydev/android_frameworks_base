@@ -23,6 +23,7 @@ import android.os.AsyncResult;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
+import android.os.SystemProperties;
 
 import com.android.internal.telephony.IccUtils;
 import com.android.internal.telephony.CommandsInterface;
@@ -302,54 +303,55 @@ public class StkService extends Handler implements AppInterface {
         StkCmdMessage cmdMsg = new StkCmdMessage(cmdParams);
         StkLog.d(this,"Received "+ cmdParams.getCommandType());
         switch (cmdParams.getCommandType()) {
-        case SET_UP_MENU:
-            if (removeMenu(cmdMsg.getMenu())) {
-                mMenuCmd = null;
-            } else {
-                mMenuCmd = cmdMsg;
-            }
-            sendProactiveCmdResponse(cmdParams);
-            break;
-        case DISPLAY_TEXT:
-            // when application is not required to respond, send an immediate
-            // response.
-	    if (!cmdMsg.geTextMessage().responseNeeded) {
+            case SET_UP_MENU:
+                if (removeMenu(cmdMsg.getMenu())) {
+                    mMenuCmd = null;
+                } else {
+                    mMenuCmd = cmdMsg;
+                }
                 sendProactiveCmdResponse(cmdParams);
-	    }
-            break;
-        case REFRESH:
-            // ME side only handles refresh commands which meant to remove IDLE
-            // MODE TEXT.
-            cmdParams.cmdDet.typeOfCommand = CommandType.SET_UP_IDLE_MODE_TEXT
-                    .value();
-            break;
-        case SET_UP_IDLE_MODE_TEXT:
-            sendProactiveCmdResponse(cmdParams);
-            break;
-        case SET_UP_EVENT_LIST:
-            if (isValidSetupEventList(cmdMsg)) {
-                sendTerminalResponse(cmdParams.cmdDet, ResultCode.OK, false,
-                        0, null);
-            } else {
-                sendTerminalResponse(cmdParams.cmdDet, ResultCode.BEYOND_TERMINAL_CAPABILITY,
-                        false, 0, null);
-            }
-            break;
-        case LAUNCH_BROWSER:
-        case SELECT_ITEM:
-        case GET_INPUT:
-        case GET_INKEY:
-        case SEND_DTMF:
-        case SEND_SMS:
-        case SEND_SS:
-        case SEND_USSD:
-        case PLAY_TONE:
-        case SET_UP_CALL:
-            // nothing to do on telephony!
-            break;
-        default:
-            StkLog.d(this, "Unsupported command");
-            return;
+                break;
+            case DISPLAY_TEXT:
+                // when application is not required to respond, send an
+                // immediate response.
+                if (!cmdMsg.geTextMessage().responseNeeded) {
+                    sendProactiveCmdResponse(cmdParams);
+                }
+                break;
+            case REFRESH:
+                // ME side only handles refresh commands which meant to remove
+                // IDLE MODE TEXT.
+                cmdParams.cmdDet.typeOfCommand = CommandType.SET_UP_IDLE_MODE_TEXT.value();
+                break;
+            case SET_UP_IDLE_MODE_TEXT:
+                sendProactiveCmdResponse(cmdParams);
+                break;
+            case SET_UP_EVENT_LIST:
+                if (isValidSetupEventList(cmdMsg)) {
+                    sendTerminalResponse(cmdParams.cmdDet, ResultCode.OK, false, 0, null);
+                } else {
+                    sendTerminalResponse(cmdParams.cmdDet, ResultCode.BEYOND_TERMINAL_CAPABILITY,
+                            false, 0, null);
+                }
+                break;
+            case PROVIDE_LOCAL_INFORMATION:
+                sendTerminalResponse(cmdParams.cmdDet, ResultCode.OK, false, 0, null);
+                return;
+            case LAUNCH_BROWSER:
+            case SELECT_ITEM:
+            case GET_INPUT:
+            case GET_INKEY:
+            case SEND_DTMF:
+            case SEND_SMS:
+            case SEND_SS:
+            case SEND_USSD:
+            case PLAY_TONE:
+            case SET_UP_CALL:
+                // nothing to do on telephony!
+                break;
+            default:
+                StkLog.d(this, "Unsupported command");
+                return;
         }
         mCurrntCmd = cmdMsg;
         Intent intent = new Intent(AppInterface.STK_CMD_ACTION);
@@ -423,19 +425,7 @@ public class StkService extends Handler implements AppInterface {
         if (resp != null) {
             resp.format(buf);
         } else {
-            //ETSI TS 102 384,27.22.4.2.8.4.2.
-            //If it is a response for GET_INKEY command and the response timeout has
-            //occured, then add DURATION TLV for variable timeout case.
-            if ((cmdDet.typeOfCommand == AppInterface.CommandType.GET_INKEY.value()) &&
-                    (resultCode.value() == ResultCode.NO_RESPONSE_FROM_USER.value())) {
-                if (cmdInput != null && cmdInput.duration != null) {
-                    tag = ComprehensionTlvTag.DURATION.value();
-                    buf.write(tag);
-                    buf.write(0x02); // length
-                    buf.write(cmdInput.duration.timeUnit.SECOND.value());// Time Unit,Seconds
-                    buf.write(cmdInput.duration.timeInterval); // Time Duration
-                }
-            }
+	    encodeOptionalTags(cmdDet, resultCode, cmdInput, buf);
         }
 
         byte[] rawData = buf.toByteArray();
@@ -447,6 +437,53 @@ public class StkService extends Handler implements AppInterface {
         mCmdIf.sendTerminalResponse(hexString, null);
     }
 
+    private void encodeOptionalTags(CommandDetails cmdDet, ResultCode resultCode, Input cmdInput, ByteArrayOutputStream buf) {
+	switch (AppInterface.CommandType.fromInt(cmdDet.typeOfCommand)) {
+	    case GET_INKEY:
+		// ETSI TS 102 384,27.22.4.2.8.4.2.
+		// If it is a response for GET_INKEY command and the response
+		// timeout has
+		// occured, then add DURATION TLV for variable timeout case.
+		if ((resultCode.value() == ResultCode.NO_RESPONSE_FROM_USER.value()) &&
+		    (cmdInput != null) && (cmdInput.duration != null)) {
+		    getInKeyResponse(buf, cmdInput);
+		}
+	    break;
+	    case PROVIDE_LOCAL_INFORMATION:
+		if ((cmdDet.commandQualifier == CommandParamsFactory.LANGUAGE_SETTING) &&
+		    (resultCode.value() == ResultCode.OK.value())) {
+		    getPliResponse(buf);
+		}
+	    break;
+	    default:
+		StkLog.d(this, "encodeOptionalTags() Unsupported Command Type:" + cmdDet.typeOfCommand);
+		break;
+	}
+    }
+
+    private void getInKeyResponse(ByteArrayOutputStream buf, Input cmdInput) {
+	int tag = ComprehensionTlvTag.DURATION.value();
+	buf.write(tag);
+	buf.write(0x02); // length
+	buf.write(cmdInput.duration.timeUnit.SECOND.value());// Time
+							     // Unit,Seconds
+	buf.write(cmdInput.duration.timeInterval); // Time Duration
+    }
+
+    private void getPliResponse(ByteArrayOutputStream buf) {
+
+	// Locale Language Setting
+	String lang = SystemProperties.get("persist.sys.language");
+
+	if (lang != null) {
+	    // tag
+	    int tag = ComprehensionTlvTag.LANGUAGE.value();
+	    buf.write(tag);
+	    //length
+	    buf.write(lang.length());
+	    buf.write(lang.getBytes(), 0, lang.length());
+	}
+    }
 
     private void sendMenuSelection(int menuId, boolean helpRequired) {
 
