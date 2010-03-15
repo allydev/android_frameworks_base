@@ -355,43 +355,55 @@ public final class CNE
                   String ifName = null;
                   String ipAddr = null;
                   String gatewayAddr = null;
-                  ConnectivityManager cm =
-                    (ConnectivityManager)mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-                  NetworkInfo networkInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-                  NetworkInfo.State networkState = (networkInfo == null ? NetworkInfo.State.UNKNOWN :
-                        networkInfo.getState());
+                  NetworkInfo.State networkState = NetworkInfo.State.UNKNOWN;
 
+                  if(action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)){
+                      NetworkInfo networkInfo = (NetworkInfo)
+                          intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+                      networkState = (networkInfo == null ? NetworkInfo.State.UNKNOWN :
+                          networkInfo.getState());
+                  }
+
+                  if(action.equals(WifiManager.WIFI_STATE_CHANGED_ACTION)){
+                    final boolean enabled = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE,
+                    WifiManager.WIFI_STATE_UNKNOWN) == WifiManager.WIFI_STATE_ENABLED;
+                    if(!enabled){
+                        networkState = NetworkInfo.State.DISCONNECTED;
+                    }else{
+                        networkState = NetworkInfo.State.UNKNOWN;
+                    }
+                  }
 
                   Log.i(LOG_TAG, "CNE received action Network/Wifi State Changed"+
                                  " networkState: " + networkState);
 
                   if (networkState == NetworkInfo.State.CONNECTED) {
                       try {
-                      DhcpInfo dhcpInfo = mWifiManager.getDhcpInfo();
-                      int ipAddressInt = dhcpInfo.ipAddress;
-                      int gatewayInt = dhcpInfo.gateway;
+                          DhcpInfo dhcpInfo = mWifiManager.getDhcpInfo();
+                          int ipAddressInt = dhcpInfo.ipAddress;
+                          int gatewayInt = dhcpInfo.gateway;
 
-                      ipAddr = ((ipAddressInt)&0xff) + "."
-                               + ((ipAddressInt>>8)&0xff) + "."
-                               + ((ipAddressInt>>16)&0xff) + "."
-                               + ((ipAddressInt>>24)&0xff);
+                          ipAddr = ((ipAddressInt)&0xff) + "."
+                                   + ((ipAddressInt>>8)&0xff) + "."
+                                   + ((ipAddressInt>>16)&0xff) + "."
+                                   + ((ipAddressInt>>24)&0xff);
 
-                      gatewayAddr = ((gatewayInt)&0xff) + "."
-                                    + ((gatewayInt>>8)&0xff) + "."
-                                    + ((gatewayInt>>16)&0xff) +"."
-                                    + ((gatewayInt>>24)&0xff);
+                          gatewayAddr = ((gatewayInt)&0xff) + "."
+                                        + ((gatewayInt>>8)&0xff) + "."
+                                        + ((gatewayInt>>16)&0xff) +"."
+                                        + ((gatewayInt>>24)&0xff);
 
-                      InetAddress inetAddress = InetAddress.getByName(ipAddr);
-                      NetworkInterface deviceInterface
-                         = NetworkInterface.getByInetAddress(inetAddress);
-                      ifName = deviceInterface.getName();
-                      activeWlanIfName = ifName;
-                      configureIproute2(CNE_IPROUTE2_ADD_DEFAULT, ifName, ipAddr,
-                                        gatewayAddr);
-
-                      } catch (IOException e) {
+                          InetAddress inetAddress = InetAddress.getByName(ipAddr);
+                          NetworkInterface deviceInterface
+                             = NetworkInterface.getByInetAddress(inetAddress);
+                          ifName = deviceInterface.getName();
+                          activeWlanIfName = ifName;
+                          configureIproute2(CNE_IPROUTE2_ADD_DEFAULT,
+                                            ifName,
+                                            ipAddr,
+                                            gatewayAddr);
+                      } catch (Exception e) {
                             Log.w(LOG_TAG, "CNE receiver exception", e);
-
                       }
 
                   } else if (networkState == NetworkInfo.State.DISCONNECTED) {
