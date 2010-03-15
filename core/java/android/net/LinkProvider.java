@@ -1,4 +1,4 @@
-/* Copyright (c) 2009, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2009,2010 Code Aurora Forum. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -36,6 +36,9 @@ import android.net.LinkRequirements;
 import android.os.ServiceManager;
 import android.os.IBinder;
 import android.util.Log;
+import android.os.Handler;
+import android.os.Message;
+import android.os.Looper;
 
 /** {@hide}
  * This class provides a means for applications to specify their requirements
@@ -72,18 +75,13 @@ public class LinkProvider
      */
     private IConnectivityManager mService;
 
-    /** {@hide}
-     * This is the default constructor that initializes the role to default
-     * and requirements and notifier to null.
-     */
-    public LinkProvider(){
-        /* set the role to invalid and metada null and in start
-         * connection if you see this throw exception
-         */
-        mRole = ROLE_DEFAULT;
-        mLinkReqs = null;
-        mLinkNotifier = null;
-    }
+    private Handler mHandler;
+    private NotificationsThread mThread;
+    private static final int ON_LINK_AVAIL        =  1;
+    private static final int ON_BETTER_LINK_AVAIL =  2;
+    private static final int ON_LINK_LOST         =  3;
+    private static final int ON_GET_LINK_FAILURE  =  4;
+
 
     /** {@hide}
      * This constructor can be used by apps to specify a role and optional
@@ -101,9 +99,11 @@ public class LinkProvider
         mService = IConnectivityManager.Stub.asInterface(b);
         /* check for mservice to be null and throw a exception */
         if(mService == null){
-            throw new IllegalArgumentException(
+            throw new IllegalStateException(
                 "mService can not be null");
         }
+        mThread = new NotificationsThread();
+        mThread.start();
     }
 
 
@@ -240,37 +240,91 @@ public class LinkProvider
         public  void onLinkAvail(LinkInfo info) {
             Log.d(LOG_TAG,"Sending OnLinkAvail with nwId="+info.getNwId()+
                   "to App");
-            if(mLinkNotifier != null){
-                mLinkNotifier.onLinkAvail(info);
-            }
+            Message msg;
+            msg = mHandler.obtainMessage(ON_LINK_AVAIL,
+                                         info);
+            msg.setTarget(mHandler);
+            msg.sendToTarget();
             return;
         }
 
         public  void onBetterLinkAvail(LinkInfo info) {
             Log.d(LOG_TAG,"Sending onBetterLinkAvail with nwId="+info.getNwId()+
                   "to App");
-            if(mLinkNotifier != null){
-                mLinkNotifier.onBetterLinkAvail(info);
-            }
+            Message msg;
+            msg = mHandler.obtainMessage(ON_BETTER_LINK_AVAIL,
+                                         info);
+            msg.setTarget(mHandler);
+            msg.sendToTarget();
             return;
         }
 
         public  void onLinkLost(LinkInfo info) {
             Log.d(LOG_TAG,"Sending onLinkLost with nwId="+info.getNwId()+
                   "to App");
-            if(mLinkNotifier != null){
-                mLinkNotifier.onLinkLost(info);
-            }
+            Message msg;
+            msg = mHandler.obtainMessage(ON_LINK_LOST,
+                                         info);
+            msg.setTarget(mHandler);
+            msg.sendToTarget();
             return;
         }
 
         public  void onGetLinkFailure(int reason) {
             Log.d(LOG_TAG,"Sending onGetLinkFailure with reason="+reason+
                   "to App");
-            if(mLinkNotifier != null){
-                mLinkNotifier.onGetLinkFailure(reason);
-            }
+            Message msg;
+            msg = mHandler.obtainMessage(ON_GET_LINK_FAILURE,
+                                         reason);
+            msg.setTarget(mHandler);
+            msg.sendToTarget();
             return;
+        }
+    };
+
+    private class NotificationsThread extends Thread {
+
+        public void run() {
+          Looper.prepare();
+          mHandler = new Handler(){
+            @Override
+            public void handleMessage(Message msg) {
+              Log.i(LOG_TAG,"handle Message called for msg = " + msg.what);
+              switch (msg.what) {
+                  case ON_LINK_AVAIL:{
+                      LinkInfo info = (LinkInfo)msg.obj;
+                      if(mLinkNotifier != null){
+                          mLinkNotifier.onLinkAvail(info);
+                      }
+                      break;
+                  }
+                  case ON_BETTER_LINK_AVAIL:{
+                      LinkInfo info = (LinkInfo)msg.obj;
+                      if(mLinkNotifier != null){
+                          mLinkNotifier.onBetterLinkAvail(info);
+                      }
+                      break;
+                  }
+                  case ON_LINK_LOST:{
+                      LinkInfo info = (LinkInfo)msg.obj;
+                      if(mLinkNotifier != null){
+                          mLinkNotifier.onLinkLost(info);
+                      }
+                      break;
+                  }
+                  case ON_GET_LINK_FAILURE:{
+                      int reason = (int)msg.arg1;
+                      if(mLinkNotifier != null){
+                          mLinkNotifier.onGetLinkFailure(reason);
+                      }
+                      break;
+                  }
+                  default:
+                      Log.w(LOG_TAG,"Unhandled Message msg = " + msg.what);
+              }
+           }
+         };
+         Looper.loop();
         }
     };
 
