@@ -55,6 +55,9 @@ class CommandParamsFactory extends Handler {
     static final int REFRESH_NAA_INIT                       = 0x03;
     static final int REFRESH_UICC_RESET                     = 0x04;
 
+   // Command Qualifier values for PLI command
+   static final int LANGUAGE_SETTING			    = 0x04;
+
     static synchronized CommandParamsFactory getInstance(RilMessageDecoder caller,
             IccFileHandler fh) {
         if (sInstance != null) {
@@ -162,6 +165,9 @@ class CommandParamsFactory extends Handler {
                     break;
                 case SET_UP_EVENT_LIST:
                     cmdPending = processSetUpEventList(cmdDet, ctlvs);
+                    break;
+                case PROVIDE_LOCAL_INFORMATION:
+                    cmdPending = processProvideLocalInfo(cmdDet, ctlvs);
                     break;
                 default:
                     // unsupported proactive commands
@@ -916,6 +922,22 @@ class CommandParamsFactory extends Handler {
             mIconLoader.loadIcons(recordNumbers, this
                     .obtainMessage(MSG_ID_LOAD_ICON_DONE));
             return true;
+        }
+        return false;
+    }
+
+    private boolean processProvideLocalInfo(CommandDetails cmdDet, List<ComprehensionTlv> ctlvs)
+            throws ResultException {
+        StkLog.d(this, "process ProvideLocalInfo");
+        switch (cmdDet.commandQualifier) {
+            case LANGUAGE_SETTING:
+                StkLog.d(this, "PLI [LANGUAGE_SETTING]");
+                mCmdParams = new CommandParams(cmdDet);
+                break;
+            default:
+                StkLog.d(this, "PLI[" + cmdDet.commandQualifier + "] Command Not Supported");
+                mCmdParams = new CommandParams(cmdDet);
+                throw new ResultException(ResultCode.BEYOND_TERMINAL_CAPABILITY);
         }
         return false;
     }
