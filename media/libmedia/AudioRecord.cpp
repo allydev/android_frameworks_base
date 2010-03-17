@@ -210,6 +210,7 @@ status_t AudioRecord::set(
     mInputSource = (uint8_t)inputSource;
     mFlags = flags;
     mInput = input;
+    mFirstread = false;
 
     return NO_ERROR;
 }
@@ -534,7 +535,7 @@ status_t AudioRecord::obtainBuffer(Buffer* audioBuffer, int32_t waitCount)
     audioBuffer->channelCount= mChannelCount;
     audioBuffer->format      = mFormat;
     audioBuffer->frameCount  = framesReq;
-    if(framesReq >= 10 || (mFormat == AudioSystem::AAC))
+    if(framesReq >= 10 || (mFormat == AudioSystem::AAC) || !mFirstread)
       audioBuffer->size = framesReq*cblk->frameSize;
     else
       audioBuffer->size = 0;
@@ -601,6 +602,12 @@ ssize_t AudioRecord::read(void* buffer, size_t userSize)
         read += bytesRead;
 
         releaseBuffer(&audioBuffer);
+        if(!mFirstread)
+        {
+           mFirstread = true;
+           break;
+        }
+
         // Voicememo driver (Minimum buffer size = Full rate frame size * 10)
         // if the read is less than the required minimum buffer size
         if ( (format() == AudioSystem::AMR_NB) &&
