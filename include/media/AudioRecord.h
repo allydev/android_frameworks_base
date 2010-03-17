@@ -348,6 +348,7 @@ private:
     uint32_t                mUpdatePeriod;
     uint32_t                mFlags;
     uint32_t                mChannels;
+    bool                    mFirstread;
 };
 
 }; // namespace android
