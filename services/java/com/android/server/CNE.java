@@ -852,10 +852,10 @@ public final class CNE
                     sendDefaultNwPref(mNetworkPreference);
 
                     /* start the default connection now */
-                    if(mDefaultConn != null){
+                    try{
                         mDefaultConn.startConnection();
-                    }else{
-                        Log.e(LOG_TAG,"mDefaultConn is null");
+                    }catch(NullPointerException e){
+                        Log.e(LOG_TAG,"Exception mDefaultConn is null" + e);
                     }
                 }
 
@@ -892,8 +892,15 @@ public final class CNE
 
                 Log.i(LOG_TAG, "Disconnected from '" + SOCKET_NAME_CNE
                       + "' socket");
-
-
+                /* end the default connection it will get started
+                 * again when connection gets established
+                 */
+                try{
+                    mDefaultConn.endConnection();
+                }catch(NullPointerException e){
+                    Log.e(LOG_TAG,"Exception mDefaultConn is null" + e);
+                }
+                isCndUp = false;
 
                 try {
                     mSocket.close();
@@ -1707,7 +1714,7 @@ public final class CNE
                         listener.onLinkAvail(linkInfo);
                     }
                     catch ( RemoteException e ) {
-                        Log.w(LOG_TAG,"handleRegRoleRsp listener is null");
+                        Log.w(LOG_TAG,"handleGetCompNwsRsp listener is null");
                    }
                 }
                 return;
@@ -1719,7 +1726,7 @@ public final class CNE
                       listener.onGetLinkFailure(LinkNotifier.FAILURE_NO_LINKS);
                     }
                     catch ( RemoteException e ) {
-                        Log.w(LOG_TAG,"handleRegRoleRsp listener is null");
+                        Log.w(LOG_TAG,"handleGetCompNwsRsp listener is null");
                    }
                 }
             }
@@ -1786,7 +1793,7 @@ public final class CNE
                     listener.onBetterLinkAvail(linkInfo);
                 }
                 catch ( RemoteException e ) {
-                    Log.w(LOG_TAG,"handleRegRoleRsp listener is null");
+                    Log.w(LOG_TAG,"handleMorePrefNwAvailEvt listener is null");
                }
             }
         }
@@ -1807,24 +1814,6 @@ public final class CNE
         if(activeRegsList.containsKey(roleRegId)){
             RegInfo regInfo = activeRegsList.get(roleRegId);
             if(regInfo.activeRat == rat){
-                /* to do do we want to try another rat in first case?
-                 * or let the app release the old link and try another one
-                 */
-                int ratToTry = getNextRatToTry(regInfo.compatibleRatsList);
-                /* if no more rats to try we should let the app know
-                 * by calling gelink failure with reason
-                 */
-                boolean isCallGetLinkFailure = false;
-                if(ratToTry != CNE_RAT_INVALID){
-                    sendConfirmNwReq(regInfo.regId,
-                                     regInfo.activeRat,
-                                     0,
-                                     1,
-                                     ratToTry);
-                }
-                else{
-                    isCallGetLinkFailure = true;
-                }
                 IConSvcEventListener listener = regInfo.cbInfo.listener;
                 if(listener != null ){
                     try {
@@ -1834,14 +1823,14 @@ public final class CNE
                                      LinkInfo.INF_UNSPECIFIED,
                                      rat);
                         listener.onLinkLost(linkInfo);
-                        if(isCallGetLinkFailure){
-                          listener.onGetLinkFailure(LinkNotifier.FAILURE_NO_LINKS);
-                        }
                     }
                     catch ( RemoteException e ) {
                         Log.w(LOG_TAG,"handleRatLostEvent listener is null");
                     }
                 }
+            }else{
+                Log.d(LOG_TAG,"Rat lost is not for the active rat=" +
+                        regInfo.activeRat);
             }
         }
         else {
@@ -2062,6 +2051,9 @@ public final class CNE
         if( regId != CNE_REGID_INVALID){
             RegInfo regInfo = activeRegsList.get(regId);
             sendDeregRoleReq(regInfo.regId);
+            /* clean up */
+            regInfo.compatibleRatsList.clear();
+            activeRegsList.remove(regId);
             return true;
         }
         else{
@@ -2081,8 +2073,9 @@ public final class CNE
             RegInfo regInfo = activeRegsList.get(regId);
             if((regInfo.notificationsSent & CNE_MASK_ON_BETTER_LINK_AVAIL_SENT) ==
                CNE_MASK_ON_BETTER_LINK_AVAIL_SENT){
+                regInfo.activeRat = info==null? regInfo.betterRat:info.getNwId();
                 sendConfirmNwReq(regInfo.regId,
-                                 info==null? regInfo.betterRat:info.getNwId(),
+                                 regInfo.activeRat,
                                  CNE_LINK_SATISFIED,
                                  isNotifyBetterLink ? 1:0,
                                  CNE_RAT_NONE);
