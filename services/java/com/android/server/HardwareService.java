@@ -169,7 +169,7 @@ public class HardwareService extends IHardwareService.Stub {
         }
         synchronized (mVibrations) {
             removeVibrationLocked(token);
-            if (mCurrentVibration != null) {
+            if ((mCurrentVibration != null) && (mThread == null)) {
                 mCurrentVibration.mToken.unlinkToDeath(mCurrentVibration, 0);
                 mCurrentVibration = null;
             }
@@ -222,7 +222,7 @@ public class HardwareService extends IHardwareService.Stub {
 
             synchronized (mVibrations) {
                 removeVibrationLocked(token);
-                if (mCurrentVibration != null) {
+                if ((mCurrentVibration != null) && (mThread == null)) {
                     mCurrentVibration.mToken.unlinkToDeath(mCurrentVibration, 0);
                     mCurrentVibration = null;
                 }
@@ -257,7 +257,7 @@ public class HardwareService extends IHardwareService.Stub {
                     doCancelVibrateLocked();
                     startNextVibrationLocked();
                 }
-               if (mCurrentVibration != null) {
+               if ((mCurrentVibration != null) && (mThread == null)) {
                    mCurrentVibration.mToken.unlinkToDeath(mCurrentVibration, 0);
                    mCurrentVibration = null;
                }
