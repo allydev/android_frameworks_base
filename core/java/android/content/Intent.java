@@ -1480,6 +1480,21 @@ public class Intent implements Parcelable {
      * {@hide}
      */
     public static final String ACTION_REQUEST_SHUTDOWN = "android.intent.action.ACTION_REQUEST_SHUTDOWN";
+
+    /**
+     * Broadcast Action:  Broadcast to request cache service stop.
+     *
+     * {@hide}
+     */
+    public static final String ACTION_REQUEST_CACHESERVICE_STOP = "android.intent.action.REQUEST_CACHESERVICE_STOP";
+
+    /**
+     * Broadcast Action:  Broadcast to request cache service start.
+     *
+     * {@hide}
+     */
+    public static final String ACTION_REQUEST_CACHESERVICE_START = "android.intent.action.REQUEST_CACHESERVICE_START";
+
     /**
      * Broadcast Action:  A sticky broadcast that indicates low memory
      * condition on the device
