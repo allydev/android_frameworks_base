@@ -505,7 +505,7 @@ public class SearchDialog extends Dialog implements OnItemClickListener, OnItemS
      * Called after resources have changed, e.g. after screen rotation or locale change.
      */
     public void onConfigurationChanged() {
-        if (isShowing()) {
+        if (isShowing() && (mSearchable != null)) {
             // Redraw (resources may have changed)
             updateSearchButton();
             updateSearchAppIcon();
