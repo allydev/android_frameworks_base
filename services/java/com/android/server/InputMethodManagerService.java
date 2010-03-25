@@ -588,8 +588,10 @@ public class InputMethodManagerService extends IInputMethodManager.Stub
                         + mCurClient.pid + " uid " + mCurClient.uid);
             }
             mCurClient = null;
-            
-            hideInputMethodMenuLocked();
+
+	    synchronized (mMethodMap) {
+                hideInputMethodMenuLocked();
+	    }
         }
     }
     
@@ -1436,6 +1438,8 @@ public class InputMethodManagerService extends IInputMethodManager.Stub
         
         final PackageManager pm = context.getPackageManager();
         
+	int checkedItem = 0;
+
         String lastInputMethodId = Settings.Secure.getString(context
                 .getContentResolver(), Settings.Secure.DEFAULT_INPUT_METHOD);
         if (DEBUG) Log.v(TAG, "Current IME: " + lastInputMethodId);
@@ -1444,20 +1448,21 @@ public class InputMethodManagerService extends IInputMethodManager.Stub
         
         int N = (immis == null ? 0 : immis.size());
 
-        mItems = new CharSequence[N];
-        mIms = new InputMethodInfo[N];
+        synchronized (mMethodMap) {
+            mItems = new CharSequence[N];
+            mIms = new InputMethodInfo[N];
 
-        for (int i = 0; i < N; ++i) {
-            InputMethodInfo property = immis.get(i);
-            mItems[i] = property.loadLabel(pm);
-            mIms[i] = property;
-        }
+            for (int i = 0; i < N; ++i) {
+                InputMethodInfo property = immis.get(i);
+                mItems[i] = property.loadLabel(pm);
+                mIms[i] = property;
+            }
 
-        int checkedItem = 0;
-        for (int i = 0; i < N; ++i) {
-            if (mIms[i].getId().equals(lastInputMethodId)) {
-                checkedItem = i;
-                break;
+            for (int i = 0; i < N; ++i) {
+                if (mIms[i].getId().equals(lastInputMethodId)) {
+                    checkedItem = i;
+                    break;
+                }
             }
         }
 
