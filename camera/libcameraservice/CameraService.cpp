@@ -248,9 +248,6 @@ CameraService::Client::Client(const sp<CameraService>& cameraService,
                              CAMERA_MSG_FOCUS);
 
     mMediaPlayerClick = newMediaPlayer("/system/media/audio/ui/camera_click.ogg");
-    // Commenting Beep temporarily for camcorder to work
-    property_get("ro.product.device",value," ");
-    if(strcmp(value,"qsd8250_surf") || strcmp(value,"qsd8250_surf"))
     mMediaPlayerBeep = newMediaPlayer("/system/media/audio/ui/VideoRecord.ogg");
 
     mOverlayW = 0;
