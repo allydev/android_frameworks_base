@@ -1872,7 +1872,30 @@ public final class CNE
 
         Log.i(LOG_TAG,"handleRatUpMsg called ratType = "+ ratType);
 
-        if (mService != null) {
+        ConnectivityManager cm = (ConnectivityManager)
+            mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = cm.getNetworkInfo(ratType);
+        NetworkInfo.State networkState = (networkInfo == null ? NetworkInfo.State.UNKNOWN :
+                        networkInfo.getState());
+        String ipAddr = null;
+        if(networkState == NetworkInfo.State.CONNECTED){
+            try {
+                if(ratType == CNE_RAT_WLAN){
+                    DhcpInfo dhcpInfo = mWifiManager.getDhcpInfo();
+                    int ipAddressInt = dhcpInfo.ipAddress;
+                    ipAddr = ((ipAddressInt)&0xff) + "."
+                             + ((ipAddressInt>>8)&0xff) + "."
+                             + ((ipAddressInt>>16)&0xff) + "."
+                             + ((ipAddressInt>>24)&0xff);
+                }
+                if(ratType == CNE_RAT_WWAN){
+                    ipAddr = mTelephonyManager.getActiveIpAddress(null);
+                }
+                notifyRatConnectStatus(ratType, NetworkStateToInt(networkState), ipAddr);
+            } catch (Exception e) {
+                 Log.w(LOG_TAG, "HandleRatUp Exception", e);
+           }
+        }else if (mService != null) {
           mService.bringUpRat(ratType);
         }
 
