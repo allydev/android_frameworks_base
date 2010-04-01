@@ -52,6 +52,7 @@ public abstract class Connection {
         CS_RESTRICTED_EMERGENCY,        /* call was blocked by restricted emergency voice access */
         IMSI_UNKNOWN_IN_VLR,            /* IMSI is not known at the VLR */
         IMEI_NOT_ACCEPTED,              /* network does not accept emergency call establishment using an IMEI */
+        UNOBTAINABLE_NUMBER,            /* Unassigned (unallocated) number, as per Table 10.5.123/3GPP TS 24.008 */
         CDMA_LOCKED_UNTIL_POWER_CYCLE,  /* MS is locked until next power cycle */
         CDMA_DROP,
         CDMA_INTERCEPT,                 /* INTERCEPT order received, MS state idle entered */
