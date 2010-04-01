@@ -731,9 +731,7 @@ public class GSMPhone extends PhoneBase {
             return null;
         }
 
-        // Only look at the Network portion for mmi
-        String networkPortion = PhoneNumberUtils.extractNetworkPortion(newDialString);
-        GsmMmiCode mmi = GsmMmiCode.newFromDialString(networkPortion, this);
+        GsmMmiCode mmi = GsmMmiCode.newFromDialString(newDialString, this);
         if (LOCAL_DEBUG) Log.d(LOG_TAG,
                                "dialing w/ mmi '" + mmi + "'...");
 

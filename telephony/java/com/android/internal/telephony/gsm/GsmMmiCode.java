@@ -637,6 +637,15 @@ public final class GsmMmiCode  extends Handler implements MmiCode {
                         throw new RuntimeException ("invalid action");
                     }
 
+		    // Strip seperators from the number including pause char
+		    // (ignores post-dial sequence) and extract only network
+		    // portion of the number.
+		    if (sia != null) {
+			Log.d(LOG_TAG, "Extract Network Portion[" + sia + "]..");
+			dialingNumber = PhoneNumberUtils.extractNetworkPortion(sia);
+			Log.d(LOG_TAG, "Forward-to-Number: " + dialingNumber);
+		    }
+
                     int isSettingUnconditionalVoice =
                         (((reason == CommandsInterface.CF_REASON_UNCONDITIONAL) ||
                                 (reason == CommandsInterface.CF_REASON_ALL)) &&
