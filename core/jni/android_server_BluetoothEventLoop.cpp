@@ -1,6 +1,6 @@
 /*
 ** Copyright 2008, The Android Open Source Project
-** Copyright (c) 2009, Code Aurora Forum, Inc. All rights reserved.
+** Copyright (c) 2009-2010, Code Aurora Forum, Inc. All rights reserved.
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -1182,9 +1182,11 @@ void onCreateDeviceResult(DBusMessage *msg, void *user, void *n) {
     if (dbus_set_error_from_message(&err, msg)) {
         if (dbus_error_has_name(&err, "org.bluez.Error.AlreadyExists")) {
             result = CREATE_DEVICE_ALREADY_EXISTS;
+        } else {
+            result = CREATE_DEVICE_FAILED;
         }
+
         LOG_AND_FREE_DBUS_ERROR(&err);
-        result = CREATE_DEVICE_FAILED;
     }
     env->CallVoidMethod(nat->me,
                         method_onCreateDeviceResult,
