@@ -891,17 +891,24 @@ public final class CdmaDataConnectionTracker extends DataConnectionTracker {
                 Log.i(LOG_TAG, "onDataStateChanged: No active connection"
                         + "state is CONNECTED, disconnecting/cleanup");
                 writeEventLogCdmaDataDrop();
-                // Check whether network mode is CDMA , If network mode is
-                // CDMA tear down the data call and retry for new data call.
-                // Else if network mode is GSM tear down the data call
-                // and do not retry setup data call. In order to avoid
-                // retrying the data call pass reason as
-                // RADIO_TECHNOLOGY_CHANGED
+                // If network mode is CDMA and the desired power state is true
+                // then cleanup the data call , notify the reason as null (unknown)
+                // and retry for data call
+                // If network mode is CDMA and the desired power state is false
+                // then cleanup the data call and notify the reason as RADIO_TURNED_OFF
+                // If network mode is GSM cleanup the data call and notify the
+                // reason as RADIO_TECHNOLOGY_CHANGED
                 if (mCdmaPhone.getPhoneTypeFromNetworkType() == RILConstants.CDMA_PHONE) {
-                    cleanUpConnection(true, null);
+                    boolean desiredPowerState = mCdmaPhone.mSST.getDesiredPowerState();
+                    if (desiredPowerState == true) {
+                        cleanUpConnection(true, null);
+                    } else {
+                        Log.i(LOG_TAG, "Due to radio turn off cleanup the data call");
+                        cleanUpConnection(false, Phone.REASON_RADIO_TURNED_OFF);
+                    }
                 } else {
                     Log.i(LOG_TAG, "Data reconnect disabled due to radio technology changed");
-                    cleanUpConnection(true, Phone.REASON_RADIO_TECHNOLOGY_CHANGED);
+                    cleanUpConnection(false, Phone.REASON_RADIO_TECHNOLOGY_CHANGED);
                 }
                 return;
             }
