@@ -575,6 +575,7 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
                         dcTracker.getAnyDataEnabled() ? 1 : 0);
             }
 
+
             // If it's on and available and we want it off gracefully
             powerOffRadioSafely();
         } // Otherwise, we're in the desired state
@@ -585,30 +586,42 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
         // clean data connection
         DataConnectionTracker dcTracker = phone.mDataConnection;
 
-        Message msg = dcTracker.obtainMessage(DataConnectionTracker.EVENT_CLEAN_UP_CONNECTION);
-        msg.arg1 = 1; // tearDown is true
-        msg.obj = CDMAPhone.REASON_RADIO_TURNED_OFF;
-        dcTracker.sendMessage(msg);
 
-        synchronized(this) {
-            if (!mPendingRadioPowerOffAfterDataOff) {
-                DataConnectionTracker.State currentState = dcTracker.getState();
-                if (currentState != DataConnectionTracker.State.CONNECTED
+        if (networkType == ServiceState.RADIO_TECHNOLOGY_1xRTT) {
+            /*
+             * In 1x CDMA , during radio power off modem will disconnect the
+             * data call and sends the power down registration message along
+             * with the data call release message to the network
+             */
+            Log.w(LOG_TAG, "Turn off the radio right away");
+            hangupAndPowerOff();
+        } else {
+            synchronized(this) {
+                if (!mPendingRadioPowerOffAfterDataOff) {
+                    DataConnectionTracker.State currentState = dcTracker.getState();
+                    if (currentState != DataConnectionTracker.State.CONNECTED
                         && currentState != DataConnectionTracker.State.DISCONNECTING
                         && currentState != DataConnectionTracker.State.INITING) {
-                    if (DBG) log("Data disconnected, turn off radio right away.");
-                    hangupAndPowerOff();
-                }
-                else if (sendEmptyMessageDelayed(EVENT_SET_RADIO_POWER_OFF, 30000)) {
-                    if (DBG) {
-                        log("Wait up to 30 sec for data to disconnect, then turn off radio.");
+                        if (DBG) log("Data disconnected, turn off radio right away.");
+                        hangupAndPowerOff();
+                    } else {
+                        Message msg = dcTracker.obtainMessage(DataConnectionTracker.EVENT_CLEAN_UP_CONNECTION);
+                        msg.arg1 = 1; // tearDown is true
+                        msg.obj = CDMAPhone.REASON_RADIO_TURNED_OFF;
+                        dcTracker.sendMessage(msg);
+
+                        if (sendEmptyMessageDelayed(EVENT_SET_RADIO_POWER_OFF, 30000)) {
+                            if (DBG) {
+                                log("Wait up to 30 sec for data to disconnect, then turn off radio.");
+                            }
+                            mPendingRadioPowerOffAfterDataOff = true;
+                        } else {
+                            Log.w(LOG_TAG, "Cannot send delayed Msg, turn off radio right away.");
+                            hangupAndPowerOff();
+                        }
                     }
-                    mPendingRadioPowerOffAfterDataOff = true;
-                } else {
-                    Log.w(LOG_TAG, "Cannot send delayed Msg, turn off radio right away.");
-                    hangupAndPowerOff();
                 }
-            }
+            } //synchronized
         }
     }
 
