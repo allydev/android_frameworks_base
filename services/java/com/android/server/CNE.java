@@ -1921,6 +1921,7 @@ public final class CNE
 
       Log.i(LOG_TAG,"handleNotifyInFlightStatusMsg called");
       boolean on;
+      int numInts = p.readInt();
       int status = p.readInt();
       if (status == STATUS_INFLIGHT)
         on = true;
