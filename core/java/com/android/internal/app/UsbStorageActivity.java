@@ -29,6 +29,7 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.widget.Toast;
+import android.os.SystemProperties;
 
 /**
  * This activity is shown to the user for him/her to enable USB mass storage
@@ -86,6 +87,10 @@ public class UsbStorageActivity extends AlertActivity implements DialogInterface
     public void onClick(DialogInterface dialog, int which) {
 
         if (which == POSITIVE_BUTTON) {
+            if(SystemProperties.getBoolean("ro.monkey", false)) {
+                finish();
+                return;
+            }
             mountAsUsbStorage();
         }
 
