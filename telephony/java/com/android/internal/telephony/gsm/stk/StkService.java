@@ -687,10 +687,16 @@ public class StkService extends Handler implements AppInterface {
     }
 
     private boolean validateResponse(StkResponseMessage resMsg) {
-        if (mCurrntCmd != null) {
-            return (resMsg.cmdDet.compareTo(mCurrntCmd.mCmdDet));
+        boolean validResponse = false;
+        if ((resMsg.cmdDet.typeOfCommand == CommandType.SET_UP_EVENT_LIST.value())
+                || (resMsg.cmdDet.typeOfCommand == CommandType.SET_UP_MENU.value())) {
+            StkLog.d(this, "CmdType: " + resMsg.cmdDet.typeOfCommand);
+            validResponse = true;
+        } else if (mCurrntCmd != null) {
+            validResponse = resMsg.cmdDet.compareTo(mCurrntCmd.mCmdDet);
+            StkLog.d(this, "isResponse for last valid cmd: " + validResponse);
         }
-        return false;
+        return validResponse;
     }
 
     private boolean removeMenu(Menu menu) {
@@ -738,14 +744,14 @@ public class StkService extends Handler implements AppInterface {
         // (long press on the home button). Relaunching that activity can send
         // the same command's result again to the StkService and can cause it to
         // get out of sync with the SIM. This can happen in case of
-        // non-interactive type Setup Event List proactive command.
+        // non-interactive type Setup Event List and SETUP_MENU proactive commands.
         // Stk framework would have already sent Terminal Response to Setup Event
-        // List proactive command. After sometime Stk app will send Envelope
-        // Command/Event Download. In which case, the response details doesn't
+        // List and SETUP_MENU proactive commands. After sometime Stk app will send
+        // Envelope Command/Event Download. In which case, the response details doesn't
         // match with last valid command (which are not related).
         // However, we should allow Stk framework to send the message to ICC.
 
-        if (!validateResponse(resMsg) && !isSetUpEventResponse(resMsg)) {
+        if (!validateResponse(resMsg)) {
             return;
         }
         ResponseData resp = null;
