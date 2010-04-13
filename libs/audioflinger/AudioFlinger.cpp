@@ -3450,22 +3450,38 @@ bool AudioFlinger::RecordThread::threadLoop()
                             }
                         }
                         if (framesOut && mFrameCount == mRsmpInIndex) {
-                            ssize_t bytesRead = 0;
                             if (((int) framesOut != mFrameCount) &&
                                 (mFormat != AudioSystem::PCM_16_BIT) ) {
-                                bytesRead = mInput->read(buffer.raw, buffer.frameCount * mFrameSize);
-                                if(bytesRead > 0) buffer.frameCount = bytesRead/mFrameSize;
+                                mBytesRead = mInput->read(buffer.raw, buffer.frameCount * mFrameSize);
+
+                                if(mBytesRead < 0 ){
+                                  LOGE("mInputRead->read returns < 0");
+                                  buffer.frameCount  = 0;
+                                }
+                                else{
+                                  buffer.frameCount = mBytesRead/mFrameSize;
+                                }
+
                                 framesOut = 0;
+
                             } else
                             if (framesOut == mFrameCount &&
                                 (mChannelCount == mReqChannelCount || mFormat != AudioSystem::PCM_16_BIT)) {
-                                bytesRead = mInput->read(buffer.raw, mInputBytes);
-                                buffer.frameCount = bytesRead/mFrameSize;
+
+                                mBytesRead = mInput->read(buffer.raw, mInputBytes);
+                                if( mBytesRead < 0 ){
+                                  LOGE("mInput->read returns < 0");
+                                  buffer.frameCount = 0;
+                                }
+                                else{
+                                  buffer.frameCount = mBytesRead/mFrameSize;
+                                }
                                 framesOut = 0;
                             } else {
                                 mBytesRead = mInput->read(mRsmpInBuffer, mInputBytes);
                                 mRsmpInIndex = 0;
                             }
+
                             if (mBytesRead < 0) {
                                 LOGE("Error reading audio input");
                                 if (mActiveTrack->mState == TrackBase::ACTIVE) {
