@@ -1864,18 +1864,12 @@ public final class SIMRecords extends IccRecords {
                  if (matchSimPlmn(simPlmn,bcchPlmn,regOperator.length())) {
                      //Check if registered LAC is with in range
                      if ((oplDataLac1 <= hLac) && (hLac <= oplDataLac2)) {
-                         if ((oplDataPnnNum > 0x00) && (oplDataPnnNum < 0xFF)) {
-                             //We have a valid PNN record number in EF_OPL.
-                             //Read the PNN record from EF_PNN.
-                             Log.i(LOG_TAG,"EONS: lac1=" + oplDataLac1 + " lac2=" + oplDataLac2 +
-                             " hLac=" + hLac + " pnn rec=" + oplDataPnnNum);
-                             getNameFromPnnRecord(oplDataPnnNum);
-                             break;
-                         } else {
-                             oplDataPresent = false;
-                             Log.w(LOG_TAG,
-                             "EONS: PNN record number in EF_OPL is not valid");
-                         }
+                         // The EF_OPL search should be stopped if PLMN and
+                         // LAC validity checks are successful. If the PNN record
+                         // number is 0x00 or 0xFF or greater than PNN cache
+                         // size, then ME DB Name/NITZ Name will be displayed.
+                         getNameFromPnnRecord(oplDataPnnNum);
+                         break;
                      } else {
                          oplDataPresent = false;
                          Log.w(LOG_TAG,
