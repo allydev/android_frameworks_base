@@ -866,6 +866,11 @@ public final class Settings {
         public static final String STAY_ON_WHILE_PLUGGED_IN = "stay_on_while_plugged_in";
 
         /**
+         * Whether Dual microphone is enabled.
+         */
+        public static final String DUALMIC = "dualmic";
+
+        /**
           * Whether Data call is enabled.
           */
         public static final String SOCKET_DATA_CALL_ENABLE = "socket_data_call_enable";
@@ -1067,6 +1072,7 @@ public final class Settings {
          * Whether or not to dim the screen. 0=no  1=yes
          */
         public static final String DIM_SCREEN = "dim_screen";
+
 
         /**
          * The timeout before the screen turns off.
@@ -1457,6 +1463,7 @@ public final class Settings {
             BLUETOOTH_DISCOVERABILITY,
             BLUETOOTH_DISCOVERABILITY_TIMEOUT,
             DIM_SCREEN,
+            DUALMIC,
             SCREEN_OFF_TIMEOUT,
             SCREEN_BRIGHTNESS,
             SCREEN_BRIGHTNESS_MODE,
