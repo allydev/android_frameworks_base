@@ -50,6 +50,8 @@ public abstract class IccCard {
     private boolean mIccPinLocked = true; // Default to locked
     private boolean mIccFdnEnabled = false; // Default to disabled.
                                             // Will be updated when SIM_READY.
+    private boolean mIccFdnAvailable = true; // Default is enabled.
+                                             // Will be updated when SIM_READY.
     private boolean mIccPin2Blocked = false; // Default to disabled.
                                              // Will be updated when sim status changes.
     private boolean mIccPuk2Blocked = false; // Default to disabled.
@@ -286,6 +288,15 @@ public abstract class IccCard {
         mPhone.mCM.supplyNetworkDepersonalization(pin,
                 mHandler.obtainMessage(EVENT_PIN1PUK1_DONE, onComplete));
     }
+
+    /**
+     * Check whether fdn (fixed dialing number) service is available.
+     * @return true if ICC fdn service available
+     *         false if ICC fdn service not available
+     */
+     public boolean getIccFdnAvailable() {
+         return mIccFdnAvailable;
+     }
 
     /**
      * Check whether ICC pin lock is enabled
@@ -573,8 +584,15 @@ public abstract class IccCard {
 
         int[] ints = (int[])ar.result;
         if(ints.length != 0) {
-            mIccFdnEnabled = (0!=ints[0]);
-            if(mDbg) log("Query facility lock : "  + mIccFdnEnabled);
+            if (ints[0] != 2) {
+                mIccFdnEnabled = (0!=ints[0]);
+                mIccFdnAvailable = true;
+            } else {
+                if(mDbg) log("Query facility lock: FDN Service Unavailable!");
+                mIccFdnAvailable = false;
+                mIccFdnEnabled = false;
+            }
+            if(mDbg) log("Query facility lock for FDN : "  + mIccFdnEnabled);
         } else {
             Log.e(mLogTag, "[IccCard] Bogus facility lock response");
         }
@@ -593,7 +611,7 @@ public abstract class IccCard {
         int[] ints = (int[])ar.result;
         if(ints.length != 0) {
             mIccPinLocked = (0!=ints[0]);
-            if(mDbg) log("Query facility lock : "  + mIccPinLocked);
+            if(mDbg) log("Query facility lock for SIM Lock : "  + mIccPinLocked);
         } else {
             Log.e(mLogTag, "[IccCard] Bogus facility lock response");
         }
