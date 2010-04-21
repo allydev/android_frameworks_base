@@ -2277,7 +2277,7 @@ bool AudioFlinger::ThreadBase::TrackBase::step() {
 
     result = cblk->stepServer(mFrameCount);
     if (!result) {
-        LOGV("stepServer failed acquiring cblk mutex");
+        LOGE("stepServer failed acquiring cblk mutex");
         mFlags |= STEPSERVER_FAILED;
     }
     return result;
@@ -3287,11 +3287,7 @@ bool AudioFlinger::RecordThread::threadLoop()
                                 (mFormat != AudioSystem::PCM_16_BIT) ) {
                                 mBytesRead = mInput->read(buffer.raw, buffer.frameCount * mFrameSize);
 
-                                if(mBytesRead < 0 ){
-                                  LOGE("mInputRead->read returns < 0");
-                                  buffer.frameCount  = 0;
-                                }
-                                else{
+                                if(mBytesRead >= 0 ){
                                   buffer.frameCount = mBytesRead/mFrameSize;
                                 }
 
@@ -3302,11 +3298,7 @@ bool AudioFlinger::RecordThread::threadLoop()
                                 (mChannelCount == mReqChannelCount || mFormat != AudioSystem::PCM_16_BIT)) {
 
                                 mBytesRead = mInput->read(buffer.raw, mInputBytes);
-                                if( mBytesRead < 0 ){
-                                  LOGE("mInput->read returns < 0");
-                                  buffer.frameCount = 0;
-                                }
-                                else{
+                                if( mBytesRead >= 0 ){
                                   buffer.frameCount = mBytesRead/mFrameSize;
                                 }
                                 framesOut = 0;
