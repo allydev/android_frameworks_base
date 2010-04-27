@@ -53,6 +53,7 @@ import android.util.EventLog;
 import android.util.Log;
 import android.util.TimeUtils;
 import android.view.WindowManager;
+import android.preference.PreferenceManager;
 
 import com.android.internal.telephony.CommandException;
 import com.android.internal.telephony.CommandsInterface;
@@ -82,6 +83,9 @@ import java.util.TimeZone;
 final class GsmServiceStateTracker extends ServiceStateTracker {
     static final String LOG_TAG = "GSM";
     static final boolean DBG = true;
+
+    // Key used to read and write the saved network selection numeric value
+    public static final String NETWORK_SELECTION_KEY = "network_selection_key";
 
     private static final int FOCUS_BEEP_VOLUME = 100;
     private static final int MSG_ID_TIMEOUT = 1;
@@ -710,18 +714,21 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
                             // Chcek if registration denied and whether the
                             // option to display the cause of
                             // network reject is enabled.
+
+                            Log.i(LOG_TAG, "Registration denied rejcode : " + rejCode);
+
                             if (SystemProperties.getBoolean("persist.cust.tel.adapt",false)) {
-                                Log.i(LOG_TAG, "Adapt, Registration denied rejcode : " + rejCode);
                                 handleNetworkRejection(rejCode);
                             }
-                            // Check if Managed Roaming is enabled
-                            if (SystemProperties.getBoolean("persist.cust.tel.managed.roam",false)) {
-                                Log.i(LOG_TAG, "Managed Roaming, Registration denied rejcode : "
-                                        + rejCode);
-                                String userSelectedNetworkMode = Settings.System.getString(phone
-                                        .getContext().getContentResolver(),
-                                        Settings.System.NETWORK_SELECTION_MODE);
-                                if (userSelectedNetworkMode.equals("Manual")) {
+                            // Check if Managed Roaming is enabled and rejCode is 10 (Persistent location update reject)
+                            if (SystemProperties.getBoolean("persist.cust.tel.managed.roam",false) && rejCode == 10) {
+                                Log.i(LOG_TAG, "Managed Roaming case");
+
+                                String networkSelection = PreferenceManager.getDefaultSharedPreferences(phone.getContext())
+                                        .getString(NETWORK_SELECTION_KEY, "");
+
+                                // Operator id will be empty for automatic selection.
+                                if (!TextUtils.isEmpty(networkSelection)) {
                                     if (!isManagedRoamingDialogDisplayed) {
                                         createManagedRoamingDialog();
                                     }
@@ -869,6 +876,7 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
                         EVENT_POLL_STATE_GPRS, pollingContext));
 
                 pollingContext[0]++;
+
                 cm.getRegistrationState(
                     obtainMessage(
                         EVENT_POLL_STATE_REGISTRATION, pollingContext));
@@ -1336,6 +1344,18 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
         }
     };
 
+    DialogInterface.OnKeyListener mManagedRoamingDialogOnKeyListener =
+        new DialogInterface.OnKeyListener() {
+        public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
+            // Handle the back key to reset the global variable. Always return false
+            // to let the framework handles the key events properly.
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                isManagedRoamingDialogDisplayed = false;
+            }
+            return false;
+        }
+    };
+
     private void createManagedRoamingDialog() {
         Resources r = Resources.getSystem();
 
@@ -1346,6 +1366,8 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
                         onManagedRoamingDialogClick).setNegativeButton(
                         r.getString(R.string.managed_roaming_dialog_cancel_button),
                         onManagedRoamingDialogClick).create();
+
+        managedRoamingDialog.setOnKeyListener(mManagedRoamingDialogOnKeyListener);
 
         isManagedRoamingDialogDisplayed = true;
         managedRoamingDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
@@ -1477,9 +1499,12 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
              * selection mode is 'Manual'
              */
             case 10: /* Managed Roaming Specific Cause */
-                String userSelectedNetworkMode = Settings.System.getString(phone.getContext()
-                        .getContentResolver(), Settings.System.NETWORK_SELECTION_MODE);
-                if (userSelectedNetworkMode.equals("Manual")) {
+                // Retrieve the operator id
+                String networkSelection = PreferenceManager.getDefaultSharedPreferences(phone.getContext())
+                        .getString(NETWORK_SELECTION_KEY, "");
+
+                // Operator id will be empty for automatic selection.
+                if (!TextUtils.isEmpty(networkSelection)) {
                     if (!isManagedRoamingDialogDisplayed) {
                         createManagedRoamingDialog();
                     }
