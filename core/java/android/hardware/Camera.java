@@ -809,6 +809,7 @@ public class Camera {
         public static final String ISO_200 = "ISO200";
         public static final String ISO_400 = "ISO400";
         public static final String ISO_800 = "ISO800";
+        public static final String ISO_1600 = "ISO1600";
 
         //Values for Lens Shading
 
