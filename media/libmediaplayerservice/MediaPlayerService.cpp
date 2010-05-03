@@ -709,6 +709,10 @@ player_type getPlayerType(int fd, int64_t offset, int64_t length)
     lseek(fd, offset, SEEK_SET);
 
     long ident = *((long*)buf);
+    long identmidi = *((long*)(buf + 5*sizeof(long)));
+
+    if ((ident == 0x46464952) && (identmidi == 0x6468544D)) // RIFF encapsulated MIDI files are not supported
+        return NO_PLAYER;
 
     // Ogg vorbis?
     if (ident == 0x5367674f) // 'OggS'
@@ -814,6 +818,10 @@ static sp<MediaPlayerBase> createPlayer(player_type playerType, void* cookie,
         case TEST_PLAYER:
             LOGV("Create Test Player stub");
             p = new TestPlayerStub();
+            break;
+        case NO_PLAYER:
+            LOGV(" No Player supported");
+            p = NULL;
             break;
     }
     if (p != NULL) {
