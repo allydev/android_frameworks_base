@@ -535,10 +535,7 @@ status_t AudioRecord::obtainBuffer(Buffer* audioBuffer, int32_t waitCount)
     audioBuffer->channelCount= mChannelCount;
     audioBuffer->format      = mFormat;
     audioBuffer->frameCount  = framesReq;
-    if(framesReq >= 10 || (mFormat == AudioSystem::AAC) || !mFirstread)
-      audioBuffer->size = framesReq*cblk->frameSize;
-    else
-      audioBuffer->size = 0;
+    audioBuffer->size = framesReq*cblk->frameSize;
 
     audioBuffer->raw         = (int8_t*)cblk->buffer(u);
     active = mActive;
@@ -608,25 +605,6 @@ ssize_t AudioRecord::read(void* buffer, size_t userSize)
            break;
         }
 
-        // Voicememo driver (Minimum buffer size = Full rate frame size * 10)
-        // if the read is less than the required minimum buffer size
-        if ( (format() == AudioSystem::AMR_NB) &&
-             (userSize < 320)) {
-          LOGI("Breaking out of the read loop, since the minimum buffer count for read is missed %d", userSize);
-          break;
-        } else if ( (format() == AudioSystem::EVRC) &&
-             (userSize < 230)) {
-          LOGI("Breaking out of the read loop, since the minimum buffer count for read is missed %d", userSize);
-          break;
-        } else if ( (format() == AudioSystem::QCELP) &&
-             (userSize < 350)) {
-          LOGI("Breaking out of the read loop, since the minimum buffer count for read is missed %d", userSize);
-          break;
-        } else if ( (format() == AudioSystem::AAC) &&
-             (userSize < 2048)) {
-          LOGI("Breaking out of the read loop, since the minimum buffer count for read is missed %d", userSize);
-          break;
-        }
     } while (userSize);
 
     return read;
