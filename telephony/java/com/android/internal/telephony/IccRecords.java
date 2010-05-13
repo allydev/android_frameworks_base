@@ -35,6 +35,7 @@ public abstract class IccRecords extends Handler implements IccConstants {
 
     protected PhoneBase phone;
     protected RegistrantList recordsLoadedRegistrants = new RegistrantList();
+    protected RegistrantList mIccRefreshRegistrants = new RegistrantList();
 
     protected int recordsToLoad;  // number of pending load requests
 
@@ -97,6 +98,20 @@ public abstract class IccRecords extends Handler implements IccConstants {
 
     public void unregisterForRecordsLoaded(Handler h) {
         recordsLoadedRegistrants.remove(h);
+    }
+
+    /** Register for IccRefresh */
+    public void registerForIccRefreshReset(Handler h, int what, Object obj) {
+        Registrant r = new Registrant(h, what, obj);
+        mIccRefreshRegistrants.add(r);
+    }
+
+    public void unregisterForIccRefreshReset(Handler h) {
+        mIccRefreshRegistrants.remove(h);
+    }
+
+    public void onIccRefreshReset() {
+        mIccRefreshRegistrants.notifyRegistrants();
     }
 
     public String getMsisdnNumber() {

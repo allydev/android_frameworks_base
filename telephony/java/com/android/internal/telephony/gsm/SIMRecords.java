@@ -1188,14 +1188,7 @@ public final class SIMRecords extends IccRecords {
                 break;
             case CommandsInterface.SIM_REFRESH_RESET:
 		if (DBG) log("handleSimRefresh with SIM_REFRESH_RESET");
-                phone.mCM.setRadioPower(false, null);
-                /* Note: no need to call setRadioPower(true).  Assuming the desired
-                * radio power state is still ON (as tracked by ServiceStateTracker),
-                * ServiceStateTracker will call setRadioPower when it receives the
-                * RADIO_STATE_CHANGED notification for the power off.  And if the
-                * desired power state has changed in the interim, we don't want to
-                * override it with an unconditional power on.
-                */
+                onIccRefreshReset();
                 break;
             default:
                 // unknown refresh operation

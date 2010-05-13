@@ -139,6 +139,8 @@ public class StkService extends Handler implements AppInterface {
     // Events to signal SIM presence or absent in the device.
     private static final int MSG_ID_SIM_LOADED       = 20;
 
+    static final int MSG_ID_ICC_REFRESH_RESET            = 30;
+
     private static final int DEV_ID_KEYPAD      = 0x01;
     private static final int DEV_ID_DISPLAY     = 0x02;
     private static final int DEV_ID_EARPIECE    = 0x03;
@@ -172,12 +174,17 @@ public class StkService extends Handler implements AppInterface {
         // Register for SIM ready event.
         mSimRecords.registerForRecordsLoaded(this, MSG_ID_SIM_LOADED, null);
 
+        // Register for IccRefreshReset event.
+        mIccRecords.registerForIccRefreshReset(this, MSG_ID_ICC_REFRESH_RESET, null);
+
         mCmdIf.reportStkServiceIsRunning(null);
         StkLog.d(this, "StkService: is running");
     }
 
     public void dispose() {
+
         mSimRecords.unregisterForRecordsLoaded(this);
+        mIccRecords.unregisterForIccRefreshReset(this);
         mCmdIf.unSetOnStkSessionEnd(this);
         mCmdIf.unSetOnStkProactiveCmd(this);
         mCmdIf.unSetOnStkEvent(this);
@@ -570,6 +577,9 @@ public class StkService extends Handler implements AppInterface {
         case MSG_ID_RESPONSE:
             handleCmdResponse((StkResponseMessage) msg.obj);
             break;
+        case MSG_ID_ICC_REFRESH_RESET:
+            handleIccRefreshReset();
+            break;
         default:
             throw new AssertionError("Unrecognized STK command: " + msg.what);
         }
@@ -602,6 +612,23 @@ public class StkService extends Handler implements AppInterface {
         }
         return false;
     }
+
+
+
+    private  void  handleIccRefreshReset() {
+        CommandDetails cmdDet = new  CommandDetails();
+	    cmdDet.typeOfCommand = AppInterface.CommandType.SET_UP_MENU.value();
+        SelectItemParams cmdParams = new  SelectItemParams(cmdDet,null,false);
+        StkCmdMessage cmdMsg = new StkCmdMessage(cmdParams);
+
+        // Send intent with NULL menu to uninstall STK Main menu.
+        StkLog.d(this, "Sending NULL menu to uninstall STK menu");
+        Intent intent = new Intent(AppInterface.STK_CMD_ACTION);
+        intent.putExtra("STK CMD", cmdMsg);
+        mContext.sendBroadcast(intent);
+    }
+
+
 
     private void handleCmdResponse(StkResponseMessage resMsg) {
         // Make sure the response details match the last valid command. An invalid
