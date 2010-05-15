@@ -61,6 +61,8 @@ public abstract class IccCard {
     private int mPin2RetryCount = -1;
     /* The extra data for broacasting intent INTENT_ICC_STATE_CHANGE */
     static public final String INTENT_KEY_ICC_STATE = "ss";
+    /* UNUSED means the ICC state not used (eg, nv ready) */
+    static public final String INTENT_VALUE_ICC_UNUSED = "UNUSED";
     /* NOT_READY means the ICC interface is not ready (eg, radio is off or powering on) */
     static public final String INTENT_VALUE_ICC_NOT_READY = "NOT_READY";
     /* ABSENT means ICC is missing */
@@ -637,8 +639,13 @@ public abstract class IccCard {
     public void broadcastIccStateChangedIntent(String value, String reason) {
         Intent intent = new Intent(TelephonyIntents.ACTION_SIM_STATE_CHANGED);
         intent.putExtra(Phone.PHONE_NAME_KEY, mPhone.getPhoneName());
-        intent.putExtra(INTENT_KEY_ICC_STATE, value);
         intent.putExtra(INTENT_KEY_LOCKED_REASON, reason);
+
+        if (mPhone.mCM.getRadioState() == RadioState.NV_READY) {
+            value = INTENT_VALUE_ICC_UNUSED;
+        }
+        intent.putExtra(INTENT_KEY_ICC_STATE, value);
+
         if(mDbg) log("Broadcasting intent ACTION_SIM_STATE_CHANGED " +  value
                 + " reason " + reason);
         ActivityManagerNative.broadcastStickyIntent(intent, READ_PHONE_STATE);
