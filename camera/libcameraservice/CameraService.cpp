@@ -127,7 +127,7 @@ sp<ICamera> CameraService::connect(const sp<ICameraClient>& cameraClient)
                 return currentClient;
             } else {
                 // It's another client... reject it
-                LOGV("CameraService::connect X (pid %d, new client %p) rejected. "
+                LOGE("CameraService::connect X (pid %d, new client %p) rejected. "
                     "(old pid %d, old client %p)",
                     callingPid, cameraClient->asBinder().get(),
                     currentClient->mClientPid, currentCameraClient->asBinder().get());
@@ -138,7 +138,7 @@ sp<ICamera> CameraService::connect(const sp<ICameraClient>& cameraClient)
             }
         } else {
             // can't promote, the previous client has died...
-            LOGV("New client (pid %d) connecting, old reference was dangling...",
+            LOGE("New client (pid %d) connecting, old reference was dangling...",
                     callingPid);
             mClient.clear();
         }
@@ -152,6 +152,11 @@ sp<ICamera> CameraService::connect(const sp<ICameraClient>& cameraClient)
     // create a new Client object
     client = new Client(this, cameraClient, callingPid);
     mClient = client;
+    if (client->mHardware == NULL) {
+        client = NULL;
+        mClient = NULL;
+        return client;
+    }
 #if DEBUG_CLIENT_REFERENCES
     // Enable tracking for this object, and track increments and decrements of
     // the refcount.
@@ -234,30 +239,34 @@ CameraService::Client::Client(const sp<CameraService>& cameraService,
     mCameraClient = cameraClient;
     mClientPid = clientPid;
     mHardware = openCameraHardware();
-    mUseOverlay = mHardware->useOverlay();
 
-    mHardware->setCallbacks(notifyCallback,
-                            dataCallback,
-                            dataCallbackTimestamp,
-                            mCameraService.get());
+    if (mHardware != NULL) {
+       mUseOverlay = mHardware->useOverlay();
 
-    // Enable zoom, error, and focus messages by default
-    mHardware->enableMsgType(CAMERA_MSG_ERROR |
-                             CAMERA_MSG_ZOOM |
-                             CAMERA_MSG_FOCUS);
-    property_get("persist.camera.shutter.disable", value, "0");
-    int disableShutterSound = atoi(value);
-    if(disableShutterSound != 1)
-        mMediaPlayerClick = newMediaPlayer("/system/media/audio/ui/camera_click.ogg");
-    mMediaPlayerBeep = newMediaPlayer("/system/media/audio/ui/VideoRecord.ogg");
-    mOverlayW = 0;
-    mOverlayH = 0;
+       mHardware->setCallbacks(notifyCallback,
+                               dataCallback,
+                               dataCallbackTimestamp,
+                               mCameraService.get());
 
-    // Callback is disabled by default
-    mPreviewCallbackFlag = FRAME_CALLBACK_FLAG_NOOP;
-    mOrientation = 0;
-    cameraService->incUsers();
-    LOGV("Client::Client X (pid %d)", callingPid);
+       // Enable zoom, error, and focus messages by default
+       mHardware->enableMsgType(CAMERA_MSG_ERROR |
+                                CAMERA_MSG_ZOOM |
+                                CAMERA_MSG_FOCUS);
+       property_get("persist.camera.shutter.disable", value, "0");
+       int disableShutterSound = atoi(value);
+       if(disableShutterSound != 1)
+           mMediaPlayerClick = newMediaPlayer("/system/media/audio/ui/camera_click.ogg");
+       mMediaPlayerBeep = newMediaPlayer("/system/media/audio/ui/VideoRecord.ogg");
+
+       mOverlayW = 0;
+       mOverlayH = 0;
+
+      // Callback is disabled by default
+      mPreviewCallbackFlag = FRAME_CALLBACK_FLAG_NOOP;
+      mOrientation = 0;
+      cameraService->incUsers();
+    }
+    LOGD("Client::Client X (pid %d)", callingPid);
 }
 
 status_t CameraService::Client::checkPid()
