@@ -615,6 +615,8 @@ void AudioMixer::ditherAndClamp(int32_t* out, int32_t const *sums, size_t c)
     for (size_t i=0 ; i<c ; i++) {
         int32_t l = *sums++;
         int32_t r = *sums++;
+        l += 0x800;
+        r += 0x800;
         int32_t nl = l >> 12;
         int32_t nr = r >> 12;
         l = clamp16(nl);
