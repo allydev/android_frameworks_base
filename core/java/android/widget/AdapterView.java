@@ -792,6 +792,9 @@ public abstract class AdapterView<T extends Adapter> extends ViewGroup {
 
         @Override
         public void onInvalidated() {
+            if (mSelectionNotifier != null) {
+                mSelectionNotifier.removeCallbacks(mSelectionNotifier);
+            }
             mDataChanged = true;
 
             if (AdapterView.this.getAdapter().hasStableIds()) {
