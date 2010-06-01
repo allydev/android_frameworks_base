@@ -552,15 +552,19 @@ public class StatusBarService extends IStatusBar.Stub
                 doRevealAnimation();
                 return;
             }
+
+            boolean doExpand = false;
+            boolean expand;
+            boolean doDisable = false;
+            int disableWhat = 0;
+
             synchronized (mQueue) {
                 boolean wasExpanded = mExpanded;
 
                 // for each one in the queue, find all of the ones with the same key
                 // and collapse that down into a final op and/or call to setVisibility, etc
-                boolean expand = wasExpanded;
-                boolean doExpand = false;
-                boolean doDisable = false;
-                int disableWhat = 0;
+                expand = wasExpanded;
+
                 int N = mQueue.size();
                 while (N > 0) {
                     PendingOp op = mQueue.get(0);
@@ -634,17 +638,18 @@ public class StatusBarService extends IStatusBar.Stub
                 if (mQueue.size() != 0) {
                     throw new RuntimeException("Assertion failed: mQueue.size=" + mQueue.size());
                 }
-                if (doExpand) {
-                    // this is last so that we capture all of the pending changes before doing it
-                    if (expand) {
-                        animateExpand();
-                    } else {
-                        animateCollapse();
-                    }
+            }
+
+            if (doExpand) {
+                // this is last so that we capture all of the pending changes before doing it
+                if (expand) {
+                    animateExpand();
+                } else {
+                    animateCollapse();
                 }
-                if (doDisable) {
-                    performDisableActions(disableWhat);
-                }
+            }
+            if (doDisable) {
+                performDisableActions(disableWhat);
             }
         }
     }
