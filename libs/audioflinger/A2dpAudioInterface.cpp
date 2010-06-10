@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (c) 2010, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +19,10 @@
 
 //#define LOG_NDEBUG 0
 #define LOG_TAG "A2dpAudioInterface"
+#include <binder/IServiceManager.h>
 #include <utils/Log.h>
 #include <utils/String8.h>
+#include <utils/String16.h>
 
 #include "A2dpAudioInterface.h"
 #include "audio/liba2dp.h"
@@ -131,6 +134,7 @@ status_t A2dpAudioInterface::setParameters(const String8& keyValuePairs)
     AudioParameter param = AudioParameter(keyValuePairs);
     String8 value;
     String8 key;
+    int intVal;
     status_t status = NO_ERROR;
 
     LOGV("setParameters() %s", keyValuePairs.string());
@@ -151,6 +155,23 @@ status_t A2dpAudioInterface::setParameters(const String8& keyValuePairs)
         }
         param.remove(key);
     }
+    key = String8("scmst_cp_header");
+    if (param.getInt(key, intVal) == NO_ERROR) {
+        bool ok = checkCallingPermission(String16("android.permission.MODIFY_AUDIO_DRM"));
+
+        if (ok) {
+            LOGD("A2dpAudioInterface::setParameters() called for SCMS-T header: %x", intVal);
+            if (mOutput->mData) {
+                a2dp_set_cp_header(mOutput->mData, (uint8_t)intVal);
+            }
+        } else {
+            LOGE("A2dpAudioInterface::setParameters() called for SCMS-T header "
+                 "modification, but caller does not have MODIFY_AUDIO_DRM permission.");
+            status = PERMISSION_DENIED;
+        }
+        param.remove(key);
+    }
+
 
     if (param.size()) {
         status_t hwStatus = mHardwareInterface->setParameters(param.toString());
