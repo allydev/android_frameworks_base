@@ -488,6 +488,9 @@ void AssetManager::updateResourceParamsLocked() const
         mConfig->country[1] = mLocale[4];
     }
     mConfig->size = sizeof(*mConfig);
+#ifdef NO_TOUCHSCREEN
+    mConfig->touchscreen = ResTable_config::TOUCHSCREEN_FINGER;
+#endif
 
     res->setParameters(mConfig);
 }
