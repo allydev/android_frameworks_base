@@ -256,7 +256,9 @@ void AudioPolicyManagerBase::setPhoneState(int state)
     // store previous phone state for management of sonification strategy below
     int oldState = mPhoneState;
     mPhoneState = state;
-    bool force = false;
+    // force routing command to audio hardware when starting call
+    // even if no device change is needed
+    bool force = (mPhoneState == AudioSystem::MODE_IN_CALL);
 
     // are we entering or starting a call
     if ((oldState != AudioSystem::MODE_IN_CALL) && (state == AudioSystem::MODE_IN_CALL)) {
@@ -290,8 +292,11 @@ void AudioPolicyManagerBase::setPhoneState(int state)
 
     // force routing command to audio hardware when ending call
     // even if no device change is needed
-    if (oldState == AudioSystem::MODE_IN_CALL && newDevice == 0) {
-        newDevice = hwOutputDesc->device();
+    if (oldState == AudioSystem::MODE_IN_CALL) {
+        if (newDevice == 0) {
+            newDevice = hwOutputDesc->device();
+        }
+        force = true;
     }
 
     // when changing from ring tone to in call mode, mute the ringing tone
@@ -664,13 +669,13 @@ audio_io_handle_t AudioPolicyManagerBase::getInput(int inputSource,
     // adapt channel selection to input source
     switch(inputSource) {
     case AUDIO_SOURCE_VOICE_UPLINK:
-        channels = AudioSystem::CHANNEL_IN_VOICE_UPLINK;
+        channels |= AudioSystem::CHANNEL_IN_VOICE_UPLINK;
         break;
     case AUDIO_SOURCE_VOICE_DOWNLINK:
-        channels = AudioSystem::CHANNEL_IN_VOICE_DNLINK;
+        channels |= AudioSystem::CHANNEL_IN_VOICE_DNLINK;
         break;
     case AUDIO_SOURCE_VOICE_CALL:
-        channels = (AudioSystem::CHANNEL_IN_VOICE_UPLINK | AudioSystem::CHANNEL_IN_VOICE_DNLINK);
+        channels |= (AudioSystem::CHANNEL_IN_VOICE_UPLINK | AudioSystem::CHANNEL_IN_VOICE_DNLINK);
         break;
     default:
         break;
@@ -913,6 +918,10 @@ AudioPolicyManagerBase::AudioPolicyManagerBase(AudioPolicyClientInterface *clien
     uint32_t defaultDevice = (uint32_t) AudioSystem::DEVICE_OUT_EARPIECE;
     // devices available by default are speaker, ear piece and microphone
     mAvailableOutputDevices = AudioSystem::DEVICE_OUT_EARPIECE;
+#ifndef HW_NO_SPEAKER
+    mAvailableOutputDevices |= AudioSystem::DEVICE_OUT_SPEAKER;
+    defaultDevice = (uint32_t) AudioSystem::DEVICE_OUT_SPEAKER;
+#endif
     mAvailableInputDevices = AudioSystem::DEVICE_IN_BUILTIN_MIC;
 
 #ifdef WITH_A2DP
@@ -1515,14 +1524,18 @@ uint32_t AudioPolicyManagerBase::getDeviceForStrategy(routing_strategy strategy,
         }
 
         if (device2 == 0) {
-            LOGE("SElecting the Earpuiece stream *********************");
             device2 = mAvailableOutputDevices & AudioSystem::DEVICE_OUT_EARPIECE;
         }
 
         // device is DEVICE_OUT_SPEAKER if we come from case STRATEGY_SONIFICATION, 0 otherwise
         device |= device2;
-        if (device == 0) {
-            LOGE("getDeviceForStrategy() speaker device not found");
+        // Do not play media stream if in call and the requested device would change the hardware
+        // output routing
+        if (mPhoneState == AudioSystem::MODE_IN_CALL &&
+            !AudioSystem::isA2dpDevice((AudioSystem::audio_devices)device) &&
+            device != getDeviceForStrategy(STRATEGY_PHONE)) {
+            device = 0;
+            LOGV("getDeviceForStrategy() incompatible media and phone devices");
         }
         } break;
 
@@ -1718,7 +1731,7 @@ status_t AudioPolicyManagerBase::checkAndSetVolume(int stream, int index, audio_
 
     float volume = computeVolume(stream, index, output, device);
     // do not set volume if the float value did not change
-    if (volume != mOutputs.valueFor(output)->mCurVolume[stream] || force) {
+    if ((volume != mOutputs.valueFor(output)->mCurVolume[stream]) || (stream == AudioSystem::VOICE_CALL) || force) {
         mOutputs.valueFor(output)->mCurVolume[stream] = volume;
         LOGV("setStreamVolume() for output %d stream %d, volume %f, delay %d", output, stream, volume, delayMs);
         if (stream == AudioSystem::VOICE_CALL ||
