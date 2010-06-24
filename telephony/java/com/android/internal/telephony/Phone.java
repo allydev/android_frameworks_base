@@ -1267,20 +1267,6 @@ public interface Phone {
     void unregisterForCallReestablishInd(Handler h);
 
     /**
-     * Get the current active PDP context list
-     *
-     * @deprecated
-     * @param response <strong>On success</strong>, "response" bytes is
-     * made available as:
-     * (String[])(((AsyncResult)response.obj).result).
-     * <strong>On failure</strong>,
-     * (((AsyncResult)response.obj).result) == null and
-     * (((AsyncResult)response.obj).exception) being an instance of
-     * com.android.internal.telephony.gsm.CommandException
-     */
-    void getPdpContextList(Message response);
-
-    /**
      * Get the current active Data Call list, substitutes getPdpContextList
      *
      * @param response <strong>On success</strong>, "response" bytes is

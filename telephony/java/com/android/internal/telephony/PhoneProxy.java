@@ -614,13 +614,6 @@ public class PhoneProxy extends Handler implements Phone {
         mActivePhone.unregisterForCallReestablishInd(h);
     }
 
-    /**
-     * @deprecated
-     */
-    public void getPdpContextList(Message response) {
-        mActivePhone.getPdpContextList(response);
-    }
-
     public void getDataCallList(Message response) {
         mActivePhone.getDataCallList(response);
     }
