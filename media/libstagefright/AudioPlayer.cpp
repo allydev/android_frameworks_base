@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 #define LOG_TAG "AudioPlayer"
 #include <utils/Log.h>
 
@@ -59,6 +59,7 @@ status_t AudioPlayer::start(bool sourceAlreadyStarted) {
     CHECK(!mStarted);
     CHECK(mSource != NULL);
 
+LOGE("***************AudioPlayer::start(");
     status_t err;
     if (!sourceAlreadyStarted) {
         err = mSource->start();

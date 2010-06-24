@@ -671,10 +671,12 @@ static player_type getDefaultPlayerType() {
     char value[PROPERTY_VALUE_MAX];
     if (property_get("media.stagefright.enable-player", value, NULL)
         && (!strcmp(value, "1") || !strcasecmp(value, "true"))) {
+        LOGE("The Default player that is returned is STAGEFRIGHT**************");
         return STAGEFRIGHT_PLAYER;
     }
 #endif
 
+    LOGE("The Default Player is PV_PLAYER***********************");
     return PV_PLAYER;
 }
 

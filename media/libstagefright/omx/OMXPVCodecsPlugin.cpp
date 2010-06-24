@@ -20,6 +20,11 @@
 
 #include <media/stagefright/MediaDebug.h>
 
+#define LOG_NDEBUG 0
+#define LOG_TAG "OMXPVCodecsPlugin"
+#include <utils/Log.h>
+
+
 namespace android {
 
 OMXPVCodecsPlugin::OMXPVCodecsPlugin() {
@@ -58,6 +63,8 @@ OMX_ERRORTYPE OMXPVCodecsPlugin::getRolesOfComponent(
         const char *name,
         Vector<String8> *roles) {
     roles->clear();
+
+LOGE("The name passed to the getRolesOfComponent is **************************** %s", name);
 
     OMX_U32 numRoles;
     OMX_ERRORTYPE err =
