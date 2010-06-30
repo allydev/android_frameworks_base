@@ -36,6 +36,7 @@
 #include <media/AudioSystem.h>
 #include "CameraService.h"
 
+#include <cutils/properties.h>
 #include <cutils/atomic.h>
 
 namespace android {
@@ -68,6 +69,17 @@ extern "C" {
 #if DEBUG_DUMP_PREVIEW_FRAME_TO_FILE
 static int debug_frame_cnt;
 #endif
+
+struct camera_size_type {
+    int width;
+    int height;
+};
+
+static const camera_size_type preview_sizes[] = {
+     { 1280, 720 }, // 720P
+     { 768,  432 },
+};
+
 
 static int getCallingPid() {
     return IPCThreadState::self()->getCallingPid();
@@ -115,7 +127,7 @@ sp<ICamera> CameraService::connect(const sp<ICameraClient>& cameraClient)
                 return currentClient;
             } else {
                 // It's another client... reject it
-                LOGV("CameraService::connect X (pid %d, new client %p) rejected. "
+                LOGE("CameraService::connect X (pid %d, new client %p) rejected. "
                     "(old pid %d, old client %p)",
                     callingPid, cameraClient->asBinder().get(),
                     currentClient->mClientPid, currentCameraClient->asBinder().get());
@@ -126,7 +138,7 @@ sp<ICamera> CameraService::connect(const sp<ICameraClient>& cameraClient)
             }
         } else {
             // can't promote, the previous client has died...
-            LOGV("New client (pid %d) connecting, old reference was dangling...",
+            LOGE("New client (pid %d) connecting, old reference was dangling...",
                     callingPid);
             mClient.clear();
         }
@@ -140,6 +152,11 @@ sp<ICamera> CameraService::connect(const sp<ICameraClient>& cameraClient)
     // create a new Client object
     client = new Client(this, cameraClient, callingPid);
     mClient = client;
+    if (client->mHardware == NULL) {
+        client = NULL;
+        mClient = NULL;
+        return client;
+    }
 #if DEBUG_CLIENT_REFERENCES
     // Enable tracking for this object, and track increments and decrements of
     // the refcount.
@@ -216,33 +233,40 @@ CameraService::Client::Client(const sp<CameraService>& cameraService,
         const sp<ICameraClient>& cameraClient, pid_t clientPid)
 {
     int callingPid = getCallingPid();
+    char value[PROPERTY_VALUE_MAX];
     LOGV("Client::Client E (pid %d)", callingPid);
     mCameraService = cameraService;
     mCameraClient = cameraClient;
     mClientPid = clientPid;
     mHardware = openCameraHardware();
-    mUseOverlay = mHardware->useOverlay();
 
-    mHardware->setCallbacks(notifyCallback,
-                            dataCallback,
-                            dataCallbackTimestamp,
-                            mCameraService.get());
+    if (mHardware != NULL) {
+       mUseOverlay = mHardware->useOverlay();
 
-    // Enable zoom, error, and focus messages by default
-    mHardware->enableMsgType(CAMERA_MSG_ERROR |
-                             CAMERA_MSG_ZOOM |
-                             CAMERA_MSG_FOCUS);
+       mHardware->setCallbacks(notifyCallback,
+                               dataCallback,
+                               dataCallbackTimestamp,
+                               mCameraService.get());
 
-    mMediaPlayerClick = newMediaPlayer("/system/media/audio/ui/camera_click.ogg");
-    mMediaPlayerBeep = newMediaPlayer("/system/media/audio/ui/VideoRecord.ogg");
-    mOverlayW = 0;
-    mOverlayH = 0;
+       // Enable zoom, error, and focus messages by default
+       mHardware->enableMsgType(CAMERA_MSG_ERROR |
+                                CAMERA_MSG_ZOOM |
+                                CAMERA_MSG_FOCUS);
+       property_get("persist.camera.shutter.disable", value, "0");
+       int disableShutterSound = atoi(value);
+       if(disableShutterSound != 1)
+           mMediaPlayerClick = newMediaPlayer("/system/media/audio/ui/camera_click.ogg");
+       mMediaPlayerBeep = newMediaPlayer("/system/media/audio/ui/VideoRecord.ogg");
 
-    // Callback is disabled by default
-    mPreviewCallbackFlag = FRAME_CALLBACK_FLAG_NOOP;
-    mOrientation = 0;
-    cameraService->incUsers();
-    LOGV("Client::Client X (pid %d)", callingPid);
+       mOverlayW = 0;
+       mOverlayH = 0;
+
+      // Callback is disabled by default
+      mPreviewCallbackFlag = FRAME_CALLBACK_FLAG_NOOP;
+      mOrientation = 0;
+      cameraService->incUsers();
+    }
+    LOGD("Client::Client X (pid %d)", callingPid);
 }
 
 status_t CameraService::Client::checkPid()
@@ -542,6 +566,8 @@ status_t CameraService::Client::startRecordingMode()
         return NO_ERROR;
     }
 
+    mHardware->enableMsgType(CAMERA_MSG_VIDEO_FRAME);
+
     // start recording mode
     ret = mHardware->startRecording();
     if (ret != NO_ERROR) {
@@ -557,6 +583,16 @@ status_t CameraService::Client::setOverlay()
     CameraParameters params(mHardware->getParameters());
     params.getPreviewSize(&w, &h);
 
+    //for 720p recording , preview can be 800X448
+    char mDeviceName[PROPERTY_VALUE_MAX];
+    property_get("ro.product.device",mDeviceName," ");
+    if(!strncmp(mDeviceName, "msm7630",7) || !strncmp(mDeviceName, "qsd8250",7)){
+        if(w == preview_sizes[0].width && h==preview_sizes[0].height){
+            LOGD("Changing overlay dimensions to 768X432 for 720p recording.");
+            w = preview_sizes[1].width;
+            h = preview_sizes[1].height;
+        }
+    }
     if ( w != mOverlayW || h != mOverlayH )
     {
         // Force the destruction of any previous overlay
@@ -607,6 +643,18 @@ status_t CameraService::Client::registerPreviewBuffers()
     int w, h;
     CameraParameters params(mHardware->getParameters());
     params.getPreviewSize(&w, &h);
+
+    //for 720p recording , preview can be 800X448
+    char mDeviceName[PROPERTY_VALUE_MAX];
+
+    property_get("ro.product.device",mDeviceName," ");
+    if(!strncmp(mDeviceName,"msm7630", 7) || !strncmp(mDeviceName,"qsd8250", 7)){
+        if(w ==  preview_sizes[0].width && h== preview_sizes[0].height){
+            LOGD("registerpreviewbufs :changing dimensions to 768X432 for 720p recording.");
+            w = preview_sizes[1].width;
+            h = preview_sizes[1].height;
+        }
+    }
 
     // don't use a hardcoded format here
     ISurface::BufferHeap buffers(w, h, w, h,
@@ -690,9 +738,6 @@ status_t CameraService::Client::startRecording()
             mMediaPlayerBeep->start();
         }
     }
-
-    mHardware->enableMsgType(CAMERA_MSG_VIDEO_FRAME);
-
     return startCameraMode(CAMERA_RECORDING_MODE);
 }
 
@@ -742,14 +787,15 @@ void CameraService::Client::stopRecording()
             return;
         }
 
+        mHardware->disableMsgType(CAMERA_MSG_VIDEO_FRAME);
+        mHardware->stopRecording();
+        LOGV("stopRecording(), hardware stopped OK");
+
         if (mMediaPlayerBeep.get() != NULL) {
             mMediaPlayerBeep->seekTo(0);
             mMediaPlayerBeep->start();
         }
 
-        mHardware->stopRecording();
-        mHardware->disableMsgType(CAMERA_MSG_VIDEO_FRAME);
-        LOGV("stopRecording(), hardware stopped OK");
     }
 
     // hold preview buffer lock
