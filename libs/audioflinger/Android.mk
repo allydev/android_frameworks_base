@@ -32,9 +32,6 @@ ifeq ($(strip $(BOARD_USES_GENERIC_AUDIO)),true)
   LOCAL_CFLAGS += -DGENERIC_AUDIO
 endif
 
-ifeq ($(strip $(BOARD_NO_SPEAKER)),true)
-  LOCAL_CFLAGS += -DHW_NO_SPEAKER
-endif
 
 LOCAL_MODULE:= libaudiointerface
 
@@ -50,6 +47,9 @@ include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 
+ifeq ($(strip $(BOARD_NO_SPEAKER)),true)
+  LOCAL_CFLAGS += -DHW_NO_SPEAKER
+endif
 LOCAL_SRC_FILES:=               \
     AudioPolicyManagerBase.cpp
 
