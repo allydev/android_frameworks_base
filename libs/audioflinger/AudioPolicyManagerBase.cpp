@@ -946,7 +946,8 @@ AudioPolicyManagerBase::AudioPolicyManagerBase(AudioPolicyClientInterface *clien
                 outputDesc->mSamplingRate, outputDesc->mFormat, outputDesc->mChannels);
     } else {
         addOutput(mHardwareOutput, outputDesc);
-        setOutputDevice(mHardwareOutput, defaultDevice, false);
+        //routing is necessary if the default device is different than default hardware device
+        setOutputDevice(mHardwareOutput, defaultDevice, true);
     }
 
     updateDeviceForStrategy();
