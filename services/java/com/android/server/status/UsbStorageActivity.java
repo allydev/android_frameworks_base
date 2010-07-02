@@ -70,12 +70,14 @@ public class UsbStorageActivity extends Activity
     static final boolean localLOGV = false;
 
     /** Used to detect when the USB cable is unplugged, so we can call finish() */
-    private BroadcastReceiver mBatteryReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver mMediaChangeReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction() == Intent.ACTION_BATTERY_CHANGED) {
-                handleBatteryChanged(intent);
+            String action = intent.getAction();
+            if (action.equals(Intent.ACTION_UMS_DISCONNECTED)) {
+                                 finish();
             }
+
         }
     };
 
@@ -139,7 +141,9 @@ public class UsbStorageActivity extends Activity
         super.onResume();
 
         mStorageManager.registerListener(mStorageListener);
-        registerReceiver(mBatteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        IntentFilter intentFilter = new IntentFilter(Intent.ACTION_UMS_DISCONNECTED);
+        registerReceiver(mMediaChangeReceiver, intentFilter);
+
         try {
             switchDisplay(mStorageManager.isUsbMassStorageEnabled());
         } catch (Exception ex) {
@@ -151,17 +155,9 @@ public class UsbStorageActivity extends Activity
     protected void onPause() {
         super.onPause();
         
-        unregisterReceiver(mBatteryReceiver);
+        unregisterReceiver(mMediaChangeReceiver);
         if (mStorageManager == null && mStorageListener != null) {
             mStorageManager.unregisterListener(mStorageListener);
-        }
-    }
-
-    private void handleBatteryChanged(Intent intent) {
-        int pluggedType = intent.getIntExtra("plugged", 0);
-        if (pluggedType == 0) {
-            // It was disconnected from the plug, so finish
-            finish();
         }
     }
 
