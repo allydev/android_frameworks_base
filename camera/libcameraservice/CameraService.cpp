@@ -84,7 +84,6 @@ static int getCallingPid() {
     return IPCThreadState::self()->getCallingPid();
 }
 
-static Mutex connlock;
 // ----------------------------------------------------------------------------
 
 void CameraService::instantiate() {
@@ -115,7 +114,6 @@ sp<ICamera> CameraService::connect(const sp<ICameraClient>& cameraClient)
             cameraClient->asBinder().get());
 
     Mutex::Autolock lock(mServiceLock);
-    Mutex::Autolock l(connlock);
     sp<Client> client;
     if (mClient != 0) {
         sp<Client> currentClient = mClient.promote();
@@ -128,7 +126,7 @@ sp<ICamera> CameraService::connect(const sp<ICameraClient>& cameraClient)
                 return currentClient;
             } else {
                 // It's another client... reject it
-                LOGD("CameraService::connect X (pid %d, new client %p) rejected. "
+                LOGE("CameraService::connect X (pid %d, new client %p) rejected. "
                     "(old pid %d, old client %p)",
                     callingPid, cameraClient->asBinder().get(),
                     currentClient->mClientPid, currentCameraClient->asBinder().get());
@@ -139,7 +137,7 @@ sp<ICamera> CameraService::connect(const sp<ICameraClient>& cameraClient)
             }
         } else {
             // can't promote, the previous client has died...
-            LOGD("New client (pid %d) connecting, old reference was dangling...",
+            LOGE("New client (pid %d) connecting, old reference was dangling...",
                     callingPid);
             mClient.clear();
         }
@@ -153,6 +151,11 @@ sp<ICamera> CameraService::connect(const sp<ICameraClient>& cameraClient)
     // create a new Client object
     client = new Client(this, cameraClient, callingPid);
     mClient = client;
+    if (client->mHardware == NULL) {
+        client = NULL;
+        mClient = NULL;
+        return client;
+    }
 #if DEBUG_CLIENT_REFERENCES
     // Enable tracking for this object, and track increments and decrements of
     // the refcount.
@@ -235,27 +238,31 @@ CameraService::Client::Client(const sp<CameraService>& cameraService,
     mCameraClient = cameraClient;
     mClientPid = clientPid;
     mHardware = openCameraHardware();
-    mUseOverlay = mHardware->useOverlay();
+   if (mHardware != NULL) {
+       mUseOverlay = mHardware->useOverlay();
 
-    mHardware->setCallbacks(notifyCallback,
-                            dataCallback,
-                            dataCallbackTimestamp,
-                            mCameraService.get());
+       mHardware->setCallbacks(notifyCallback,
+                               dataCallback,
+                               dataCallbackTimestamp,
+                               mCameraService.get());
 
-    // Enable zoom, error, and focus messages by default
-    mHardware->enableMsgType(CAMERA_MSG_ERROR |
-                             CAMERA_MSG_ZOOM |
-                             CAMERA_MSG_FOCUS);
+       // Enable zoom, error, and focus messages by default
+       mHardware->enableMsgType(CAMERA_MSG_ERROR |
+                                CAMERA_MSG_ZOOM |
+                                CAMERA_MSG_FOCUS);
+       property_get("persist.camera.shutter.disable", value, "0");
+       int disableShutterSound = atoi(value);
+       if(disableShutterSound != 1)
+           mMediaPlayerClick = newMediaPlayer("/system/media/audio/ui/camera_click.ogg");
+       mMediaPlayerBeep = newMediaPlayer("/system/media/audio/ui/VideoRecord.ogg");
 
-    mMediaPlayerClick = newMediaPlayer("/system/media/audio/ui/camera_click.ogg");
-    mMediaPlayerBeep = newMediaPlayer("/system/media/audio/ui/VideoRecord.ogg");
+       mOverlayW = 0;
+       mOverlayH = 0;
 
-    mOverlayW = 0;
-    mOverlayH = 0;
-
-    // Callback is disabled by default
-    mPreviewCallbackFlag = FRAME_CALLBACK_FLAG_NOOP;
-    cameraService->incUsers();
+      // Callback is disabled by default
+      mPreviewCallbackFlag = FRAME_CALLBACK_FLAG_NOOP;
+      cameraService->incUsers();
+    }
     LOGD("Client::Client X (pid %d)", callingPid);
 }
 
@@ -402,7 +409,6 @@ void CameraService::Client::disconnect()
     LOGD("Client (%p) E disconnect from (%d)",
             getCameraClient()->asBinder().get(),
             IPCThreadState::self()->getCallingPid());
-    Mutex::Autolock l(connlock);
     Mutex::Autolock lock(mLock);
     if (mClientPid <= 0) {
         LOGD("camera is unlocked (mClientPid = %d), don't tear down hardware", mClientPid);
