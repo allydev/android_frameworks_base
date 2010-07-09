@@ -483,7 +483,7 @@ status_t CameraService::Client::setPreviewDisplay(const sp<ISurface>& surface)
         mOverlayRef = 0;
         // If preview has been already started, set overlay or register preview
         // buffers now.
-        if (mHardware->previewEnabled()) {
+        if (mHardware->previewEnabled() || mUseOverlay) {
             if (mUseOverlay) {
                 result = setOverlay();
             } else if (mSurface != 0) {
@@ -612,7 +612,7 @@ status_t CameraService::Client::setOverlay()
             // wait in the createOverlay call if the previous overlay is in the 
             // process of being destroyed.
             for (int retry = 0; retry < 50; ++retry) {
-                mOverlayRef = mSurface->createOverlay(w, h, OVERLAY_FORMAT_DEFAULT,
+                mOverlayRef = mSurface->createOverlay(w, h, OVERLAY_FORMAT_YCbCr_420_SP,
                                                       mOrientation);
                 if (mOverlayRef != NULL) break;
                 LOGW("Overlay create failed - retrying");
