@@ -863,6 +863,8 @@ public class Camera {
         public static final String SCENE_MODE_SPORTS = "sports";
         public static final String SCENE_MODE_PARTY = "party";
         public static final String SCENE_MODE_CANDLELIGHT = "candlelight";
+        public static final String SCENE_MODE_BACKLIGHT = "backlight";
+        public static final String SCENE_MODE_FLOWERS = "flowers";
 
         /**
          * Applications are looking for a barcode. Camera driver will be
