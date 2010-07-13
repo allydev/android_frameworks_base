@@ -106,7 +106,7 @@ LOCAL_SRC_FILES:= \
 LOCAL_SHARED_LIBRARIES += libcutils libutils libEGL libGLESv1_CM libGLESv2 libui libacc
 LOCAL_LDLIBS := -lpthread -ldl
 LOCAL_MODULE:= libRS
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := optional eng
 
 ifeq "$(findstring msm7627,$(TARGET_PRODUCT))" "msm7627"
 	LOCAL_CFLAGS += -mno-thumb

@@ -38,7 +38,7 @@ LOCAL_LDLIBS := -lpthread
 LOCAL_ADDITIONAL_DEPENDENCIES := $(addprefix $(rs_generated_include_dir)/,rsgApiFuncDecl.h)
 LOCAL_MODULE:= librs_jni
 LOCAL_ADDITIONAL_DEPENDENCIES += $(rs_generated_source)
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := optional eng
 LOCAL_REQUIRED_MODULES := libRS
 
 include $(BUILD_SHARED_LIBRARY)
