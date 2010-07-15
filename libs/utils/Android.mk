@@ -55,6 +55,10 @@ LOCAL_SRC_FILES:= $(commonSources)
 LOCAL_MODULE:= libutils
 
 LOCAL_CFLAGS += -DLIBUTILS_NATIVE=1 $(TOOL_CFLAGS)
+ifeq ($(BOARD_NO_TOUCHSCREEN),true)
+LOCAL_CFLAGS += -DNO_TOUCHSCREEN
+endif
+
 LOCAL_C_INCLUDES += external/zlib
 
 ifeq ($(HOST_OS),windows)
@@ -78,6 +82,10 @@ LOCAL_SRC_FILES:= \
 	$(commonSources) \
     BackupData.cpp \
 	BackupHelpers.cpp
+
+ifeq ($(BOARD_NO_TOUCHSCREEN),true)
+LOCAL_CFLAGS += -DNO_TOUCHSCREEN
+endif
 
 ifeq ($(TARGET_OS),linux)
 LOCAL_LDLIBS += -lrt -ldl
