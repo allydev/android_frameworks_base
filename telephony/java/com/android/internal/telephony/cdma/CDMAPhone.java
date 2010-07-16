@@ -93,6 +93,8 @@ public class CDMAPhone extends PhoneBase {
 
     // Default Emergency Callback Mode exit timer
     private static final int DEFAULT_ECM_EXIT_TIMER_VALUE = 300000;
+    // Default Timer to end Callback Mode when out of service
+    private static final int DEFAULT_ECM_OOS_TIMER_VALUE = 15000;
 
     static final String VM_COUNT_CDMA = "vm_count_key_cdma";
     private static final String VM_NUMBER_CDMA = "vm_number_key_cdma";
@@ -100,6 +102,7 @@ public class CDMAPhone extends PhoneBase {
 
     static final int RESTART_ECM_TIMER = 0; // restart Ecm timer
     static final int CANCEL_ECM_TIMER = 1; // cancel Ecm timer
+    static final int EVENT_ECM_OOS_EXPIRED = 50; // OOS Timer expired while in ECM
 
     // Instance Variables
     CdmaCallTracker mCT;
@@ -834,6 +837,27 @@ public class CDMAPhone extends PhoneBase {
     }
 
      void notifyServiceStateChanged(ServiceState ss) {
+         if (this.mIsPhoneInEcmState) {
+             switch (ss.getState()) {
+                 case ServiceState.STATE_EMERGENCY_ONLY:
+                 case ServiceState.STATE_IN_SERVICE:
+                     removeMessages(EVENT_ECM_OOS_EXPIRED);
+                     break;
+                 case ServiceState.STATE_OUT_OF_SERVICE:
+                     int timer = SystemProperties.getInt(TelephonyProperties.PROPERTY_ECM_OOS_TIMER,
+                             DEFAULT_ECM_OOS_TIMER_VALUE);
+                     if (timer > 0) {
+                         sendMessageDelayed(Message.obtain(this,EVENT_ECM_OOS_EXPIRED), timer);
+                     }
+                 case ServiceState.STATE_POWER_OFF:
+                     // User should be queried if they want to exit ECM before powering off.
+                     // This should never happen
+                     Log.w(LOG_TAG, "STATE_POWER_OFF while in EmergencyCallbackMode");
+                     break;
+                 default:
+                     Log.e(LOG_TAG, "Unknown Service State: " + ss.getState());
+             }
+         }
          super.notifyServiceStateChangedP(ss);
      }
 
@@ -1090,6 +1114,11 @@ public class CDMAPhone extends PhoneBase {
             }
             break;
 
+            case EVENT_ECM_OOS_EXPIRED: {
+                Log.d(LOG_TAG, "Out of Service timer expired. Ending Emergency Mode");
+                this.exitEmergencyCallbackMode();
+            }
+            break;
             default:{
                 super.handleMessage(msg);
             }

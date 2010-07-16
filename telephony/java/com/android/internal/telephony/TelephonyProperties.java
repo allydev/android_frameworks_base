@@ -107,6 +107,9 @@ public interface TelephonyProperties
     /** Indicate the timer value for exiting emergency callback mode */
     static final String PROPERTY_ECM_EXIT_TIMER = "ro.cdma.ecmexittimer";
 
+    /** Indicate the timer value for exiting emergency callback mode when out of service */
+    static final String PROPERTY_ECM_OOS_TIMER = "ro.cdma.ecm-oos-timer";
+
     /** The international dialing prefix conversion string */
     static final String PROPERTY_IDP_STRING = "ro.cdma.idpstring";
 
