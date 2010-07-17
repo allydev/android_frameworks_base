@@ -48,6 +48,7 @@ uint32_t AudioSystem::gPrevInSamplingRate = 16000;
 int AudioSystem::gPrevInFormat = AudioSystem::PCM_16_BIT;
 int AudioSystem::gPrevInChannelCount = 1;
 size_t AudioSystem::gInBuffSize = 0;
+int AudioSystem::gPhoneState = AudioSystem::MODE_NORMAL;
 
 
 // establish binder interface to AudioFlinger service
@@ -164,9 +165,19 @@ status_t AudioSystem::getStreamMute(int stream, bool* mute)
 status_t AudioSystem::setMode(int mode)
 {
     if (mode >= NUM_MODES) return BAD_VALUE;
+    gPhoneState = mode;
     const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
     if (af == 0) return PERMISSION_DENIED;
     return af->setMode(mode);
+}
+
+bool AudioSystem::isModeInCall()
+{
+    if (gPhoneState == AudioSystem::MODE_IN_CALL) {
+        return true;
+    }
+
+    return false;
 }
 
 
