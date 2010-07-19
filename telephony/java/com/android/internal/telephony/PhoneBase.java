@@ -741,14 +741,18 @@ public abstract class PhoneBase extends Handler implements Phone {
         mCM.setSmscAddress(address, result);
     }
 
+    /**
+     * Set the TTY mode
+     */
     public void setTTYMode(int ttyMode, Message onComplete) {
-        // This function should be overridden by the class CDMAPhone. Not implemented in GSMPhone.
-        logUnexpectedCdmaMethodCall("setTTYMode");
+        mCM.setTTYMode(ttyMode, onComplete);
     }
 
+    /**
+     * Queries the TTY mode
+     */
     public void queryTTYMode(Message onComplete) {
-        // This function should be overridden by the class CDMAPhone. Not implemented in GSMPhone.
-        logUnexpectedCdmaMethodCall("queryTTYMode");
+        mCM.queryTTYMode(onComplete);
     }
 
     public void enableEnhancedVoicePrivacy(boolean enable, Message onComplete) {
