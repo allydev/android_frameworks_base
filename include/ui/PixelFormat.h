@@ -78,6 +78,7 @@ enum {
 
     // New formats can be added if they're also defined in
     // pixelflinger/format.h
+    PIXEL_FORMAT_YCrCb_420_SP_INTERLACE = GGL_PIXEL_FORMAT_YCrCb_420_SP_INTERLACE,
 };
 
 typedef int32_t PixelFormat;
