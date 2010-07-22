@@ -616,6 +616,7 @@ class MountService extends IMountService.Stub
             in = new Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.parse("file://" + path));
             in.putExtra("read-only", false);
         } else if (newState == VolumeState.Unmounting) {
+            updatePublicVolumeState(path, Environment.MEDIA_UNMOUNTED);
             in = new Intent(Intent.ACTION_MEDIA_EJECT, Uri.parse("file://" + path));
         } else if (newState == VolumeState.Formatting) {
         } else if (newState == VolumeState.Shared) {
