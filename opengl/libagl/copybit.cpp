@@ -64,6 +64,7 @@ static void textureToCopyBitImage(
     img->format = opFormat;
     img->base   = surface->data;
     img->handle = (native_handle_t *)buffer->handle;
+    img->padding = surface->stride - surface->width;
 }
 
 struct clipRectRegion : public copybit_region_t {
