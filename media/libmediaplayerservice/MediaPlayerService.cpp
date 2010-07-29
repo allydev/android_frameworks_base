@@ -667,13 +667,43 @@ void MediaPlayerService::Client::disconnect()
     IPCThreadState::self()->flushCommands();
 }
 
-static player_type getDefaultPlayerType() {
+static player_type getDefaultPlayerType(const char *url) {
 #if BUILD_WITH_FULL_STAGEFRIGHT
     char value[PROPERTY_VALUE_MAX];
     if (property_get("media.stagefright.enable-player", value, NULL)
         && (!strcmp(value, "1") || !strcasecmp(value, "true"))) {
-        LOGE("The Default player that is returned is STAGEFRIGHT**************");
-        return STAGEFRIGHT_PLAYER;
+        if (PVPlayer::usePVPlayer(url)==OK) {
+            LOGV("usePVPlayer: asking for PVPlayer to play qcelp, evrc, raw aac, or file with LPA implementation");
+            LOGE("Returning PV_PLAYER*************************");
+            return PV_PLAYER;
+        }
+        else {
+            LOGV("usePVPlayer: did not detect file to be qcelp, evrc, raw aac, or file with LPA implementation");
+            LOGE("The Default player that is returned is STAGEFRIGHT**************");
+            return STAGEFRIGHT_PLAYER;
+        }
+    }
+#endif
+
+    LOGE("The Default Player is PV_PLAYER***********************");
+    return PV_PLAYER;
+}
+
+static player_type getDefaultPlayerType(int fd, int64_t offset, int64_t length) {
+#if BUILD_WITH_FULL_STAGEFRIGHT
+    char value[PROPERTY_VALUE_MAX];
+    if (property_get("media.stagefright.enable-player", value, NULL)
+        && (!strcmp(value, "1") || !strcasecmp(value, "true"))) {
+        if (PVPlayer::usePVPlayer(fd,offset,length)==OK) {
+            LOGV("usePVPlayer: asking for PVPlayer to play qcelp, evrc, raw aac, or file with LPA implementation");
+            LOGE("Returning PV_PLAYER*************************");
+            return PV_PLAYER;
+        }
+        else {
+            LOGV("usePVPlayer: did not detect file to be qcelp, evrc, raw aac, or file with LPA implementation");
+            LOGE("The Default player that is returned is STAGEFRIGHT**************");
+            return STAGEFRIGHT_PLAYER;
+        }
     }
 #endif
 
@@ -743,7 +773,7 @@ player_type getPlayerType(int fd, int64_t offset, int64_t length)
         EAS_Shutdown(easdata);
     }
 
-    return getDefaultPlayerType();
+    return getDefaultPlayerType(fd,offset,length);
 }
 
 player_type getPlayerType(const char* url)
@@ -787,7 +817,7 @@ player_type getPlayerType(const char* url)
         return PV_PLAYER;
     }
 
-    return getDefaultPlayerType();
+    return getDefaultPlayerType(url);
 }
 
 static sp<MediaPlayerBase> createPlayer(player_type playerType, void* cookie,
