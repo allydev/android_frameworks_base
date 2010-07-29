@@ -458,7 +458,7 @@ public class VideoView extends SurfaceView implements MediaPlayerControl {
         {
             mSurfaceWidth = w;
             mSurfaceHeight = h;
-            boolean isValidState =  (mTargetState == STATE_PLAYING);
+            boolean isValidState = (mTargetState == STATE_PLAYING);
             boolean hasValidSize = (mVideoWidth == w && mVideoHeight == h);
             if (mMediaPlayer != null && isValidState && hasValidSize) {
                 if (mSeekWhenPrepared != 0) {
@@ -587,7 +587,7 @@ public class VideoView extends SurfaceView implements MediaPlayerControl {
     public void suspend() {
         if (isInPlaybackState()) {
             if (mMediaPlayer.suspend()) {
-                mStateWhenSuspended = mCurrentState;
+                mStateWhenSuspended = mTargetState;
                 mCurrentState = STATE_SUSPEND;
                 mTargetState = STATE_SUSPEND;
             } else {
@@ -605,7 +605,7 @@ public class VideoView extends SurfaceView implements MediaPlayerControl {
         }
         if (mMediaPlayer != null && mCurrentState == STATE_SUSPEND) {
             if (mMediaPlayer.resume()) {
-                mCurrentState = mStateWhenSuspended;
+                mCurrentState = STATE_PREPARING;
                 mTargetState = mStateWhenSuspended;
             } else {
                 Log.w(TAG, "Unable to resume video");
