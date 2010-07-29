@@ -45,6 +45,9 @@ public abstract class IccCard {
     private RegistrantList mPinLockedRegistrants = new RegistrantList();
     private RegistrantList mNetworkLockedRegistrants = new RegistrantList();
 
+    protected boolean mIsMultimodeCdmaPhone =
+        SystemProperties.getBoolean("ro.config.multimode_cdma", false);
+
     private boolean mDesiredPinLocked;
     private boolean mDesiredFdnEnabled;
     private boolean mIccPinLocked = true; // Default to locked
@@ -61,8 +64,6 @@ public abstract class IccCard {
     private int mPin2RetryCount = -1;
     /* The extra data for broacasting intent INTENT_ICC_STATE_CHANGE */
     static public final String INTENT_KEY_ICC_STATE = "ss";
-    /* UNUSED means the ICC state not used (eg, nv ready) */
-    static public final String INTENT_VALUE_ICC_UNUSED = "UNUSED";
     /* NOT_READY means the ICC interface is not ready (eg, radio is off or powering on) */
     static public final String INTENT_VALUE_ICC_NOT_READY = "NOT_READY";
     /* ABSENT means ICC is missing */
@@ -107,7 +108,7 @@ public abstract class IccCard {
     static public final String INTENT_VALUE_LOCKED_RUIM_RUIM = "RUIM RUIM";
 
     protected static final int EVENT_ICC_LOCKED_OR_ABSENT = 1;
-    private static final int EVENT_GET_ICC_STATUS_DONE = 2;
+    protected static final int EVENT_GET_ICC_STATUS_DONE = 2;
     protected static final int EVENT_RADIO_OFF_OR_NOT_AVAILABLE = 3;
     private static final int EVENT_PIN1PUK1_DONE = 4;
     private static final int EVENT_REPOLL_STATUS_DONE = 5;
@@ -623,30 +624,25 @@ public abstract class IccCard {
      * Parse the error response to obtain No of attempts remaining to unlock PIN1/PUK1
      */
     private void parsePinPukErrorResult(AsyncResult ar, boolean isPin1) {
-	int[] intArray = (int[]) ar.result;
-	int length = intArray.length;
-	mPin1RetryCount = -1;
-	mPin2RetryCount = -1;
-	if (length > 0) {
-	    if (isPin1) {
-		mPin1RetryCount = intArray[0];
-	    } else {
-		mPin2RetryCount = intArray[0];
-	    }
-	}
+        int[] intArray = (int[]) ar.result;
+        int length = intArray.length;
+        mPin1RetryCount = -1;
+        mPin2RetryCount = -1;
+        if (length > 0) {
+            if (isPin1) {
+                mPin1RetryCount = intArray[0];
+            } else {
+                mPin2RetryCount = intArray[0];
+            }
+        }
     }
 
     public void broadcastIccStateChangedIntent(String value, String reason) {
         Intent intent = new Intent(TelephonyIntents.ACTION_SIM_STATE_CHANGED);
         intent.addFlags(Intent.FLAG_RECEIVER_REPLACE_PENDING);
         intent.putExtra(Phone.PHONE_NAME_KEY, mPhone.getPhoneName());
-        intent.putExtra(INTENT_KEY_LOCKED_REASON, reason);
-
-        if (mPhone.mCM.getRadioState() == RadioState.NV_READY) {
-            value = INTENT_VALUE_ICC_UNUSED;
-        }
         intent.putExtra(INTENT_KEY_ICC_STATE, value);
-
+        intent.putExtra(INTENT_KEY_LOCKED_REASON, reason);
         if(mDbg) log("Broadcasting intent ACTION_SIM_STATE_CHANGED " +  value
                 + " reason " + reason);
         ActivityManagerNative.broadcastStickyIntent(intent, READ_PHONE_STATE);
@@ -662,11 +658,11 @@ public abstract class IccCard {
                             CommandsInterface.SERVICE_CLASS_DATA +
                             CommandsInterface.SERVICE_CLASS_FAX;
 
-	    if (!mPhone.mIsTheCurrentActivePhone) {
-		Log.e(mLogTag, "Received message " + msg +
-		    "[" + msg.what + "] while being destroyed. Ignoring.");
-		return;
-	    }
+            if (!mPhone.mIsTheCurrentActivePhone) {
+                Log.e(mLogTag, "Received message " + msg +
+                        "[" + msg.what + "] while being destroyed. Ignoring.");
+                return;
+            }
 
             switch (msg.what) {
                 case EVENT_RADIO_OFF_OR_NOT_AVAILABLE:
@@ -696,7 +692,7 @@ public abstract class IccCard {
                     getIccCardStatusDone(ar);
                     break;
                 case EVENT_PIN1PUK1_DONE:
-		case EVENT_PIN2PUK2_DONE:
+                case EVENT_PIN2PUK2_DONE:
                     // a PIN/PUK/PIN2/PUK2/Network Personalization
                     // request has completed. ar.userObj is the response Message
                     // Repoll before returning
@@ -704,13 +700,13 @@ public abstract class IccCard {
                     // TODO should abstract these exceptions
                     AsyncResult.forMessage(((Message)ar.userObj)).exception
                                                         = ar.exception;
-		    if ((ar.exception != null) && (ar.result != null)) {
-			if (msg.what == EVENT_PIN1PUK1_DONE) {
-			    parsePinPukErrorResult(ar, true);
-			} else {
-			    parsePinPukErrorResult(ar, false);
-			}
-		    }
+                    if ((ar.exception != null) && (ar.result != null)) {
+                        if (msg.what == EVENT_PIN1PUK1_DONE) {
+                            parsePinPukErrorResult(ar, true);
+                        } else {
+                            parsePinPukErrorResult(ar, false);
+                        }
+                    }
                     mPhone.mCM.getIccCardStatus(
                         obtainMessage(EVENT_REPOLL_STATUS_DONE, ar.userObj));
                     break;
@@ -739,9 +735,9 @@ public abstract class IccCard {
                         if (mDbg) log( "EVENT_CHANGE_FACILITY_LOCK_DONE: " +
                                 "mIccPinLocked= " + mIccPinLocked);
                     } else {
-			if (ar.result != null) {
-			    parsePinPukErrorResult(ar, true);
-			}
+                        if (ar.result != null) {
+                            parsePinPukErrorResult(ar, true);
+                        }
                         Log.e(mLogTag, "Error change facility lock with exception "
                             + ar.exception);
                     }
@@ -757,9 +753,9 @@ public abstract class IccCard {
                         if (mDbg) log("EVENT_CHANGE_FACILITY_FDN_DONE: " +
                                 "mIccFdnEnabled=" + mIccFdnEnabled);
                     } else {
-			if (ar.result != null) {
-			    parsePinPukErrorResult(ar, false);
-			}
+                        if (ar.result != null) {
+                            parsePinPukErrorResult(ar, false);
+                        }
                         Log.e(mLogTag, "Error change facility fdn with exception "
                                 + ar.exception);
                     }
@@ -772,9 +768,9 @@ public abstract class IccCard {
                     if(ar.exception != null) {
                         Log.e(mLogTag, "Error in change sim password with exception"
                             + ar.exception);
-			if (ar.result != null) {
-			    parsePinPukErrorResult(ar, true);
-			}
+                        if (ar.result != null) {
+                            parsePinPukErrorResult(ar, true);
+                        }
                     }
                     AsyncResult.forMessage(((Message)ar.userObj)).exception
                                                         = ar.exception;
@@ -812,16 +808,19 @@ public abstract class IccCard {
         if( currentRadioState == RadioState.RADIO_OFF         ||
             currentRadioState == RadioState.RADIO_UNAVAILABLE ||
             currentRadioState == RadioState.SIM_NOT_READY     ||
-            currentRadioState == RadioState.RUIM_NOT_READY    ||
-            currentRadioState == RadioState.NV_NOT_READY      ||
-            currentRadioState == RadioState.NV_READY) {
+            currentRadioState == RadioState.RUIM_NOT_READY ||
+            ((currentRadioState == RadioState.NV_NOT_READY ||
+              currentRadioState == RadioState.NV_READY) &&
+             !mIsMultimodeCdmaPhone)) {
             return IccCard.State.NOT_READY;
         }
 
         if( currentRadioState == RadioState.SIM_LOCKED_OR_ABSENT  ||
             currentRadioState == RadioState.SIM_READY             ||
             currentRadioState == RadioState.RUIM_LOCKED_OR_ABSENT ||
-            currentRadioState == RadioState.RUIM_READY) {
+            currentRadioState == RadioState.RUIM_READY ||
+            currentRadioState == RadioState.NV_NOT_READY      ||
+            currentRadioState == RadioState.NV_READY ) {
 
             int index;
 
@@ -829,17 +828,16 @@ public abstract class IccCard {
             if (currentRadioState == RadioState.RUIM_LOCKED_OR_ABSENT ||
                 currentRadioState == RadioState.RUIM_READY) {
                 index = mIccCardStatus.getCdmaSubscriptionAppIndex();
-            }
-            else {
+            } else {
                 index = mIccCardStatus.getGsmUmtsSubscriptionAppIndex();
             }
-	    IccCardApplication app;
-	    if ((index < mIccCardStatus.CARD_MAX_APPS) && (index >= 0)) {
-		app = mIccCardStatus.getApplication(index);
-	    } else {
-		Log.e(mLogTag, "[IccCard] Invalid Subscription Application index:" + index);
-		return IccCard.State.ABSENT;
-	    }
+            IccCardApplication app;
+            if ((index < mIccCardStatus.CARD_MAX_APPS) && (index >= 0)) {
+                app = mIccCardStatus.getApplication(index);
+            } else {
+                Log.e(mLogTag, "[IccCard] Invalid Subscription Application index:" + index);
+                return IccCard.State.ABSENT;
+            }
 
             if (app == null) {
                 Log.e(mLogTag, "[IccCard] Subscription Application in not present");

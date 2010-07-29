@@ -32,7 +32,9 @@ public final class RuimCard extends IccCard {
         mPhone.mCM.registerForOffOrNotAvailable(mHandler, EVENT_RADIO_OFF_OR_NOT_AVAILABLE, null);
         mPhone.mCM.registerForRUIMReady(mHandler, EVENT_ICC_READY, null);
         mPhone.mCM.registerForIccStatusChanged(mHandler, EVENT_ICC_STATUS_CHANGED, null);
-
+        if (mIsMultimodeCdmaPhone) {
+            mPhone.mCM.getIccCardStatus(mHandler.obtainMessage(EVENT_GET_ICC_STATUS_DONE));
+        }
         updateStateProperty();
     }
 
