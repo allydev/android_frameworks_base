@@ -889,4 +889,8 @@ public class PhoneProxy extends Handler implements Phone {
     public void invokeDepersonalization(String pin, int type, Message response) {
         mActivePhone.invokeDepersonalization(pin, type, response);
     }
+
+    public String getEons() {
+        return mActivePhone.getEons();
+    }
 }

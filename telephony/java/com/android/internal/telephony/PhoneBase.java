@@ -93,6 +93,7 @@ public abstract class PhoneBase extends Handler implements Phone {
     protected static final int EVENT_SET_CLIR_COMPLETE              = 18;
     protected static final int EVENT_REGISTERED_TO_NETWORK          = 19;
     protected static final int EVENT_SET_VM_NUMBER_DONE             = 20;
+    protected static final int EVENT_GET_NETWORKS_DONE              = 28;
     // Events for CDMA support
     protected static final int EVENT_GET_DEVICE_IDENTITY_DONE       = 21;
     protected static final int EVENT_RUIM_RECORDS_LOADED            = 22;
@@ -100,6 +101,8 @@ public abstract class PhoneBase extends Handler implements Phone {
     protected static final int EVENT_SET_ENHANCED_VP                = 24;
     protected static final int EVENT_EMERGENCY_CALLBACK_MODE_ENTER  = 25;
     protected static final int EVENT_EXIT_EMERGENCY_CALLBACK_RESPONSE = 26;
+    //other
+    protected static final int EVENT_ICC_RECORDS_EONS_UPDATED = 27;
 
     // Key used to read/write current CLIR setting
     public static final String CLIR_KEY = "clir_key";
@@ -1083,6 +1086,15 @@ public abstract class PhoneBase extends Handler implements Phone {
                 "called, CDMAPhone inactive.");
     }
 
+    /**
+     * Common error logger method for unexpected calls to GSM/WCDMA-only methods.
+     */
+    private void logUnexpectedGsmMethodCall(String name)
+    {
+        Log.e(LOG_TAG, "Error! " + name + "() in PhoneBase should not be " +
+                "called, GSMPhone inactive.");
+    }
+
     public int getPhoneTypeFromNetworkType() {
 
         int preferredNetworkMode = RILConstants.PREFERRED_NETWORK_MODE;
@@ -1131,4 +1143,10 @@ public abstract class PhoneBase extends Handler implements Phone {
         return 0;
     }
 
+    public String getEons() {
+        // This function should be overridden by the class GSMPhone.
+        // Not implemented in CDMAPhone.
+        logUnexpectedGsmMethodCall("getEons");
+        return null;
+    }
 }

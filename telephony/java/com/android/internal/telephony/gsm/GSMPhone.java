@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * Copyright (c) 2010, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -160,6 +161,7 @@ public class GSMPhone extends PhoneBase {
 
         mCM.registerForAvailable(this, EVENT_RADIO_AVAILABLE, null);
         mSIMRecords.registerForRecordsLoaded(this, EVENT_SIM_RECORDS_LOADED, null);
+        mSIMRecords.registerForRecordsEvents(this, EVENT_ICC_RECORDS_EONS_UPDATED, null);
         mCM.registerForOffOrNotAvailable(this, EVENT_RADIO_OFF_OR_NOT_AVAILABLE, null);
         mCM.registerForOn(this, EVENT_RADIO_ON, null);
         mCM.setOnUSSD(this, EVENT_USSD, null);
@@ -988,7 +990,9 @@ public class GSMPhone extends PhoneBase {
 
     public void
     getAvailableNetworks(Message response) {
-        mCM.getAvailableNetworks(response);
+        Message msg;
+        msg = obtainMessage(EVENT_GET_NETWORKS_DONE,response);
+        mCM.getAvailableNetworks(msg);
     }
 
     /**
@@ -1235,6 +1239,18 @@ public class GSMPhone extends PhoneBase {
 
             break;
 
+            case EVENT_ICC_RECORDS_EONS_UPDATED:
+                ar = (AsyncResult)msg.obj;
+
+                if (ar.exception != null) {
+                    Log.e(LOG_TAG, "EVENT_ICC_RECORDS_EONS_UPDATED exception "
+                          + ar.exception);
+                    break;
+                }
+
+                processIccEonsRecordsUpdated((Integer)ar.result);
+                break;
+
             case EVENT_GET_BASEBAND_VERSION_DONE:
                 ar = (AsyncResult)msg.obj;
 
@@ -1355,6 +1371,30 @@ public class GSMPhone extends PhoneBase {
                 }
                 break;
 
+            case EVENT_GET_NETWORKS_DONE:
+                ArrayList<NetworkInfo> eonsNetworkNames = null;
+
+                ar = (AsyncResult)msg.obj;
+                if (ar.exception == null) {
+                    eonsNetworkNames =
+                       mSIMRecords.getEonsForAvailableNetworks((ArrayList<NetworkInfo>)ar.result);
+                }
+
+                if (eonsNetworkNames != null) {
+                    Log.i(LOG_TAG, "[EONS] Populated EONS names for available networks.");
+                } else {
+                    eonsNetworkNames = (ArrayList<NetworkInfo>)ar.result;
+                }
+
+                onComplete = (Message) ar.userObj;
+                if (onComplete != null) {
+                    AsyncResult.forMessage(onComplete, eonsNetworkNames, ar.exception);
+                    onComplete.sendToTarget();
+                } else {
+                    Log.e(LOG_TAG, "[EONS] In EVENT_GET_NETWORKS_DONE, onComplete is null!");
+                }
+                break;
+
              default:
                  super.handleMessage(msg);
         }
@@ -1378,6 +1418,17 @@ public class GSMPhone extends PhoneBase {
             }
         }
         return false;
+    }
+
+    private void processIccEonsRecordsUpdated(int eventCode) {
+        switch (eventCode) {
+            case SIMRecords.EVENT_SPN:
+                mSST.updateSpnDisplay();
+                break;
+            case SIMRecords.EVENT_EONS:
+                mSST.updateEons();
+                break;
+        }
     }
 
     /**
@@ -1491,4 +1542,7 @@ public class GSMPhone extends PhoneBase {
         return mSIMRecords.getCspPlmn();
     }
 
+    public String getEons() {
+        return mSIMRecords.getEons();
+    }
 }

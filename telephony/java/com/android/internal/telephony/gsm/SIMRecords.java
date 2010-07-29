@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * Copyright (c) 2010, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +36,7 @@ import com.android.internal.telephony.IccUtils;
 import com.android.internal.telephony.IccVmFixedException;
 import com.android.internal.telephony.IccVmNotSupportedException;
 import com.android.internal.telephony.MccTable;
+import com.android.internal.telephony.gsm.EONS.CphsType;
 
 import java.util.ArrayList;
 
@@ -55,6 +57,8 @@ public final class SIMRecords extends IccRecords {
 
 
     SpnOverride mSpnOverride;
+
+    EONS mEons;
 
     // ***** Cached SIM State; cleared on channel close
 
@@ -141,7 +145,12 @@ public final class SIMRecords extends IccRecords {
     private static final int EVENT_SET_MSISDN_DONE = 30;
     private static final int EVENT_SIM_REFRESH = 31;
     private static final int EVENT_GET_CFIS_DONE = 32;
-    private static final int EVENT_GET_CSP_CPHS_DONE = 35;
+    private static final int EVENT_GET_ALL_OPL_RECORDS_DONE = 33;
+    private static final int EVENT_GET_ALL_PNN_RECORDS_DONE = 34;
+    private static final int EVENT_GET_SPN = 35;
+    private static final int EVENT_GET_SPN_CPHS_DONE = 36;
+    private static final int EVENT_GET_SPN_SHORT_CPHS_DONE = 37;
+    private static final int EVENT_GET_CSP_CPHS_DONE = 38;
     private static final int EVENT_AUTO_SELECT_DONE = 300;
 
     // ***** Constructor
@@ -153,6 +162,8 @@ public final class SIMRecords extends IccRecords {
 
         mVmConfig = new VoiceMailConstants();
         mSpnOverride = new SpnOverride();
+
+        mEons = new EONS();
 
         recordsRequested = false;  // No load request is made till SIM ready
 
@@ -197,6 +208,7 @@ public final class SIMRecords extends IccRecords {
         pnnHomeName = null;
 
         adnCache.reset();
+        mEons.reset();
 
         phone.setSystemProperty(PROPERTY_ICC_OPERATOR_NUMERIC, null);
         phone.setSystemProperty(PROPERTY_ICC_OPERATOR_ALPHA, null);
@@ -1038,6 +1050,83 @@ public final class SIMRecords extends IccRecords {
                 ((GSMPhone) phone).notifyCallForwardingIndicator();
                 break;
 
+            case EVENT_GET_ALL_OPL_RECORDS_DONE:
+                isRecordLoadResponse = true;
+                ar = (AsyncResult)msg.obj;
+
+                if (ar.exception != null) {
+                    Log.e(LOG_TAG, "[EONS] Exception in fetching OPL Records: " + ar.exception);
+                    mEons.resetOplData();
+                    break;
+                }
+
+                mEons.setOplData((ArrayList<byte[]>)ar.result);
+                mRecordsEventsRegistrants.notifyResult(EVENT_EONS);
+                break;
+
+            case EVENT_GET_ALL_PNN_RECORDS_DONE:
+                isRecordLoadResponse = true;
+                ar = (AsyncResult)msg.obj;
+
+                if (ar.exception != null) {
+                    Log.e(LOG_TAG, "[EONS] Exception in fetching PNN Records: " + ar.exception);
+                    mEons.resetPnnData();
+                    break;
+                }
+
+                mEons.setPnnData((ArrayList<byte[]>)ar.result);
+                mRecordsEventsRegistrants.notifyResult(EVENT_EONS);
+                break;
+
+            case EVENT_GET_SPN_CPHS_DONE:
+                isRecordLoadResponse = true;
+                ar = (AsyncResult)msg.obj;
+
+                if (ar.exception != null) {
+                    Log.e(LOG_TAG, "[EONS] Exception in reading EF_SPN_CPHS: " + ar.exception);
+                    mEons.resetCphsData(CphsType.LONG);
+                    break;
+                }
+
+                data = (byte[]) ar.result;
+                mEons.setCphsData(CphsType.LONG, data);
+                break;
+
+            case EVENT_GET_SPN_SHORT_CPHS_DONE:
+                isRecordLoadResponse = true;
+                ar = (AsyncResult)msg.obj;
+
+                if (ar.exception != null) {
+                    Log.e(LOG_TAG, "[EONS] Exception in reading EF_SPN_SHORT_CPHS: " + ar.exception);
+                    mEons.resetCphsData(CphsType.SHORT);
+                    break;
+                }
+
+                data = (byte[]) ar.result;
+                mEons.setCphsData(CphsType.SHORT, data);
+                break;
+
+             case EVENT_GET_SPN:
+                isRecordLoadResponse = true;
+                ar = (AsyncResult)msg.obj;
+
+                if (ar.exception != null) {
+                    Log.e(LOG_TAG, "[EONS] Exception in reading EF_SPN: " + ar.exception);
+                    spnDisplayCondition = -1;
+                    break;
+                }
+
+                data = (byte[]) ar.result;
+                spnDisplayCondition = 0xff & data[0];
+                spn = IccUtils.adnStringFieldToString(data, 1, data.length - 1);
+
+                phone.setSystemProperty(PROPERTY_ICC_OPERATOR_ALPHA, spn);
+
+                // When device enters or exits Home Zone, certain operators update
+                // EF_SPN file. This helps to know if the device is in Home Zone or
+                // not. Hence SPN display should be updated on EF_SPN refresh.
+                mRecordsEventsRegistrants.notifyResult(EVENT_SPN);
+                break;
         }}catch (RuntimeException exc) {
             // I don't want these exceptions to be fatal
             Log.w(LOG_TAG, "Exception parsing SIM record", exc);
@@ -1060,6 +1149,36 @@ public final class SIMRecords extends IccRecords {
                 recordsToLoad++;
                 new AdnRecordLoader(phone).loadFromEF(EF_MAILBOX_CPHS, EF_EXT1,
                         1, obtainMessage(EVENT_GET_CPHS_MAILBOX_DONE));
+                break;
+            case EF_OPL:
+                if (DBG) log("[EONS] SIM Refresh for EF_OPL");
+                recordsToLoad++;
+                phone.getIccFileHandler().loadEFLinearFixedAll(EF_OPL,
+                      obtainMessage(EVENT_GET_ALL_OPL_RECORDS_DONE));
+                break;
+            case EF_PNN:
+                if (DBG) log("[EONS] SIM Refresh for EF_PNN");
+                recordsToLoad++;
+                phone.getIccFileHandler().loadEFLinearFixedAll(EF_PNN,
+                      obtainMessage(EVENT_GET_ALL_PNN_RECORDS_DONE));
+                break;
+            case EF_SPN:
+                if (DBG) log("[EONS] SIM Refresh for EF_SPN");
+                recordsToLoad++;
+                phone.getIccFileHandler().loadEFTransparent(EF_SPN,
+                        obtainMessage(EVENT_GET_SPN));
+                break;
+            case EF_SPN_CPHS:
+                if (DBG) log("[EONS] SIM Refresh for EF_SPN_CPHS");
+                recordsToLoad++;
+                phone.getIccFileHandler().loadEFTransparent(EF_SPN_CPHS,
+                        obtainMessage(EVENT_GET_SPN_CPHS_DONE));
+                break;
+            case EF_SPN_SHORT_CPHS:
+                if (DBG) log("[EONS] SIM Refresh for EF_SPN_SHORT_CPHS");
+                recordsToLoad++;
+                phone.getIccFileHandler().loadEFTransparent(EF_SPN_SHORT_CPHS,
+                        obtainMessage(EVENT_GET_SPN_SHORT_CPHS_DONE));
                 break;
             case EF_CSP_CPHS:
                  Log.i(LOG_TAG,"CSP: SIM Refresh called for EF_CSP_CPHS");
@@ -1282,6 +1401,22 @@ public final class SIMRecords extends IccRecords {
         recordsToLoad++;
 
         iccFh.loadEFLinearFixed(EF_PNN, 1, obtainMessage(EVENT_GET_PNN_DONE));
+        recordsToLoad++;
+
+        phone.getIccFileHandler().loadEFLinearFixedAll(EF_OPL,
+              obtainMessage(EVENT_GET_ALL_OPL_RECORDS_DONE));
+        recordsToLoad++;
+
+        phone.getIccFileHandler().loadEFLinearFixedAll(EF_PNN,
+              obtainMessage(EVENT_GET_ALL_PNN_RECORDS_DONE));
+        recordsToLoad++;
+
+        phone.getIccFileHandler().loadEFTransparent(EF_SPN_CPHS,
+              obtainMessage(EVENT_GET_SPN_CPHS_DONE));
+        recordsToLoad++;
+
+        phone.getIccFileHandler().loadEFTransparent(EF_SPN_SHORT_CPHS,
+              obtainMessage(EVENT_GET_SPN_SHORT_CPHS_DONE));
         recordsToLoad++;
 
         iccFh.loadEFTransparent(EF_SST, obtainMessage(EVENT_GET_SST_DONE));
@@ -1537,6 +1672,38 @@ public final class SIMRecords extends IccRecords {
     private boolean isCphsMailboxEnabled() {
         if (mCphsInfo == null)  return false;
         return ((mCphsInfo[1] & CPHS_SST_MBN_MASK) == CPHS_SST_MBN_ENABLED );
+    }
+
+    /**
+     * Get the EONS name derived from EF_OPL/EF_PNN or EF_CPHS_ONS/EF_CPHS_ONS_SHORT
+     * files for registered operator.
+     * @return Enhanced Operator Name String (EONS) if it can be derived and
+     * null otherwise.
+     */
+    public String getEons() {
+        return mEons.getEons();
+    }
+
+    /**
+     * When there is a change in LAC or Service State, update EONS
+     * for registered plmn.
+     * @param regOperator is the registered operator PLMN
+     * @param lac is current lac
+     * @return returns true if operator name display needs updation, false
+     * otherwise
+     */
+    public boolean updateEons(String regOperator, int lac) {
+        return mEons.updateEons(regOperator, lac, getSIMOperatorNumeric());
+    }
+
+    /**
+     * Fetch EONS for Available Networks from EF_PNN data.
+     * @param avlNetworks, ArrayList of Available Networks
+     * @return ArrayList Available Networks with EONS if
+     * success, otherwise null
+     */
+    public ArrayList<NetworkInfo> getEonsForAvailableNetworks(ArrayList<NetworkInfo> avlNetworks) {
+        return mEons.getEonsForAvailableNetworks(avlNetworks);
     }
 
     protected void log(String s) {

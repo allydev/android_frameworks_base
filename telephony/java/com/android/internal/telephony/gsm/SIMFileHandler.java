@@ -70,6 +70,7 @@ public final class SIMFileHandler extends IccFileHandler implements IccConstants
         case EF_AD:
         case EF_MBDN:
         case EF_PNN:
+        case EF_OPL:
         case EF_SPDI:
         case EF_SST:
         case EF_CFIS:
