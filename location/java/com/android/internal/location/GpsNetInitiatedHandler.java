@@ -56,6 +56,9 @@ public class GpsNetInitiatedHandler {
     public static final String NI_EXTRA_CMD_NOTIF_ID = "notif_id";
     public static final String NI_EXTRA_CMD_RESPONSE = "response";
     
+    // the extra fields to be displayed
+    public static final String NI_NOTIFY_ADDR_KEY = "Address";
+
     // these need to match GpsNiType constants in gps_ni.h
     public static final int GPS_NI_TYPE_VOICE = 1;
     public static final int GPS_NI_TYPE_UMTS_SUPL = 2;
@@ -322,7 +325,7 @@ public class GpsNetInitiatedHandler {
     			/* If the next 7-bit character is a CR (0x0D) and it is the last
     			 ** character, then it indicates a padding character. Drop it.
     			 */
-    			if (nPckidx == num_bytes || (cCurr >> 1) == CHAR_CR)
+                        if (nPckidx == num_bytes && (cCurr >> 1) == CHAR_CR)
     			{
     				break;
     			}
@@ -435,10 +438,25 @@ public class GpsNetInitiatedHandler {
     // change this to configure notification display
     static private String getNotifMessage(GpsNiNotification notif)
     {
-    	String message = String.format(
-    			"NI Request received from [%s] for client [%s]!", 
+        String message = String.format("NI Request received from [%s] for client [%s]",
     			decodeString(notif.requestorId, mIsHexInput, notif.requestorIdEncoding),
     			decodeString(notif.text, mIsHexInput, notif.textEncoding));
+
+        // Extra fields to be displayed
+        StringBuffer extraBuf = new StringBuffer();
+        String addrString = notif.extras.getString(NI_NOTIFY_ADDR_KEY);
+
+        if (addrString != null)
+        {
+            extraBuf.append(" ");
+            extraBuf.append(NI_NOTIFY_ADDR_KEY);
+            extraBuf.append(": [");
+            extraBuf.append(addrString); // no decoding needed for the address
+            extraBuf.append("]");
+        }
+
+        message += extraBuf.toString();
+
     	return message;
     }       
     

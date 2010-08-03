@@ -1299,7 +1299,8 @@ public class GpsLocationProvider implements LocationProviderInterface {
 		Log.i(TAG, "requestorId: " + requestorId +
 				", text: " + text +
 				", requestorIdEncoding: " + requestorIdEncoding +
-				", textEncoding: " + textEncoding);
+                                ", textEncoding: " + textEncoding +
+                                ", extras: " + extras);
 		
 		GpsNiNotification notification = new GpsNiNotification();
 		
