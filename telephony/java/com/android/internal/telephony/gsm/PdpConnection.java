@@ -269,15 +269,14 @@ public class PdpConnection extends DataConnection {
                 }
             }
         } else {
+            String[] response = ((String[]) ar.result);
+            cid = Integer.parseInt(response[0]);
             if (receivedDisconnectReq) {
                 // Don't bother reporting success if there's already a
                 // pending disconnect request, since DataConnectionTracker
                 // has already updated its state.
                 tearDownData(onDisconnect);
             } else {
-                String[] response = ((String[]) ar.result);
-                cid = Integer.parseInt(response[0]);
-
                 if (response.length > 2) {
                     interfaceName = response[1];
                     ipAddress = response[2];
