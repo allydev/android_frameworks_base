@@ -1181,14 +1181,32 @@ public final class SIMRecords extends IccRecords {
                         obtainMessage(EVENT_GET_SPN_SHORT_CPHS_DONE));
                 break;
             case EF_CSP_CPHS:
-                 Log.i(LOG_TAG,"CSP: SIM Refresh called for EF_CSP_CPHS");
-                 phone.getIccFileHandler().loadEFTransparent(EF_CSP_CPHS,
+                Log.i(LOG_TAG,"[CSP] SIM Refresh for EF_CSP_CPHS");
+                phone.getIccFileHandler().loadEFTransparent(EF_CSP_CPHS,
                         obtainMessage(EVENT_GET_CSP_CPHS_DONE));
-                 recordsToLoad++;
-                 break;
+                recordsToLoad++;
+                break;
+            case EF_MSISDN:
+                recordsToLoad++;
+                Log.i(LOG_TAG,"SIM Refresh for EF_MSISDN");
+                new AdnRecordLoader(phone).loadFromEF(EF_MSISDN, EF_EXT1, 1,
+                        obtainMessage(EVENT_GET_MSISDN_DONE));
+                break;
+            case EF_CFIS:
+                recordsToLoad++;
+                Log.i(LOG_TAG,"SIM Refresh for EF_CFIS");
+                phone.getIccFileHandler().loadEFLinearFixed(EF_CFIS, 1,
+                        obtainMessage(EVENT_GET_CFIS_DONE));
+                break;
+            case EF_CFF_CPHS:
+                recordsToLoad++;
+                Log.i(LOG_TAG,"SIM Refresh for EF_CFF_CPHS");
+                phone.getIccFileHandler().loadEFTransparent(EF_CFF_CPHS,
+                        obtainMessage(EVENT_GET_CFF_DONE));
+                break;
             default:
-                // For now, fetch all records if this is not a
-                // voicemail number.
+                // For now, fetch all records if this is not
+                // one of above handled files.
                 // TODO: Handle other cases, instead of fetching all.
                 adnCache.reset();
                 fetchSimRecords();
