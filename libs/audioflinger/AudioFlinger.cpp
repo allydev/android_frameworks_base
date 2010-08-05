@@ -3309,7 +3309,7 @@ bool AudioFlinger::RecordThread::threadLoop()
 
                             if (mBytesRead < 0) {
                                 LOGE("Error reading audio input");
-                                if (mActiveTrack->mState == TrackBase::ACTIVE) {
+                                if (mActiveTrack->mState == TrackBase::ACTIVE && mBytesRead == -1) {
                                     sleep(1);
                                 }
                                 mRsmpInIndex = mFrameCount;
