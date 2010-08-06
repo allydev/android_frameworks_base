@@ -365,6 +365,14 @@ LayerBuffer::BufferSource::BufferSource(LayerBuffer& layer,
         return;
     }
 
+    const DisplayHardware& hw(mLayer.mFlinger->
+                               graphicPlane(0).displayHardware());
+    int flags = hw.getFlags();
+    if(flags & DisplayHardware::SLOW_CONFIG)
+       mUseEGLImageDirectly = true;
+    else
+       mUseEGLImageDirectly = false;
+
     mBufferHeap = buffers;
     mLayer.setNeedsBlending((info.h_alpha - info.l_alpha) > 0);    
     mBufferSize = info.getScanlineSize(buffers.hor_stride)*buffers.ver_stride;
@@ -474,7 +482,7 @@ void LayerBuffer::BufferSource::onDraw(const Region& clip) const
             // there are constraints on buffers used by the GPU and these may not
             // be honored here. We need to change the API so the buffers
             // are allocated with gralloc. For now disable this code-path
-#if 0
+
             // First, try to use the buffer as an EGLImage directly
             if (mUseEGLImageDirectly) {
                 // NOTE: Assume the buffer is allocated with the proper USAGE flags
@@ -489,7 +497,6 @@ void LayerBuffer::BufferSource::onDraw(const Region& clip) const
                     mUseEGLImageDirectly = false;
                 }
             }
-#endif
 
             copybit_device_t* copybit = mLayer.mBlitEngine;
             if (copybit && err != NO_ERROR) {
