@@ -644,11 +644,7 @@ public class Camera {
      * @param params the Parameters to use for this Camera service
      */
     public void setParameters(Parameters params) {
-        try {
-            native_setParameters(params.flatten());
-        } catch (RuntimeException ex) {
-            Log.e(TAG, "Failed to set all parameters");
-        }
+        native_setParameters(params.flatten());
     }
 
     /**
