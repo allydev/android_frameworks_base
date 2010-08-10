@@ -743,6 +743,7 @@ public class Camera {
         private static final String KEY_TOUCH_INDEX_AEC = "touch-index-aec";
         private static final String KEY_ANTIBANDING = "antibanding";
         private static final String KEY_SCENE_MODE = "scene-mode";
+        private static final String KEY_SCENE_DETECT = "scene-detect";
         private static final String KEY_FLASH_MODE = "flash-mode";
         private static final String KEY_FOCUS_MODE = "focus-mode";
         private static final String KEY_ISO_MODE = "iso";
@@ -873,6 +874,10 @@ public class Camera {
         public static final String SCENE_MODE_CANDLELIGHT = "candlelight";
         public static final String SCENE_MODE_BACKLIGHT = "backlight";
         public static final String SCENE_MODE_FLOWERS = "flowers";
+
+        // Values for auto scene detection settings.
+        public static final String SCENE_DETECT_OFF = "off";
+        public static final String SCENE_DETECT_ON = "on";
 
         /**
          * Applications are looking for a barcode. Camera driver will be
@@ -1799,6 +1804,42 @@ public class Camera {
          */
         public List<String> getSupportedSceneModes() {
             String str = get(KEY_SCENE_MODE + SUPPORTED_VALUES_SUFFIX);
+            return split(str);
+        }
+
+        /**
+         * Gets the current auto scene detection setting.
+         *
+         * @return one of SCENE_DETECT_XXX string constant. null if auto scene detection
+         *         setting is not supported.
+         *
+         */
+        public String getSceneDetectMode() {
+            return get(KEY_SCENE_DETECT);
+        }
+
+        /**
+         * Sets the auto scene detect. Other parameters may be changed after changing
+         * scene detect. After setting auto scene detection,
+         * applications should call getParameters to know if some parameters are
+         * changed.
+         *
+         * @param value SCENE_DETECT_XXX string constants.
+         *
+         */
+        public void setSceneDetectMode(String value) {
+            set(KEY_SCENE_DETECT, value);
+        }
+
+        /**
+         * Gets the supported auto scene detection modes.
+         *
+         * @return a List of SCENE_DETECT_XXX string constant. null if scene detection
+         *         setting is not supported.
+         *
+         */
+        public List<String> getSupportedSceneDetectModes() {
+            String str = get(KEY_SCENE_DETECT + SUPPORTED_VALUES_SUFFIX);
             return split(str);
         }
 

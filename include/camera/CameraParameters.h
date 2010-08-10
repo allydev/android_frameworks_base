@@ -205,6 +205,12 @@ public:
     // Supported scene mode settings.
     // Example value: "auto,night,fireworks". Read only.
     static const char KEY_SUPPORTED_SCENE_MODES[];
+    // Current auto scene detection mode.
+    // Example value: "off" or SCENE_DETECT_XXX constants. Read/write.
+    static const char KEY_SCENE_DETECT[];
+    // Supported auto scene detection settings.
+    // Example value: "off,backlight,snow/cloudy". Read only.
+    static const char KEY_SUPPORTED_SCENE_DETECT[];
     // Current flash mode.
     // Example value: "auto" or FLASH_MODE_XXX constants. Read/write.
     static const char KEY_FLASH_MODE[];
@@ -341,6 +347,10 @@ public:
     // Applications are looking for a barcode. Camera driver will be optimized
     // for barcode reading.
     static const char SCENE_MODE_BARCODE[];
+
+    // Values for auto scene detection settings.
+    static const char SCENE_DETECT_OFF[];
+    static const char SCENE_DETECT_ON[];
 
     // Formats for setPreviewFormat and setPictureFormat.
     static const char PIXEL_FORMAT_YUV422SP[];

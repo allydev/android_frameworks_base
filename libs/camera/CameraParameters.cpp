@@ -56,6 +56,8 @@ const char CameraParameters::KEY_ANTIBANDING[] = "antibanding";
 const char CameraParameters::KEY_SUPPORTED_ANTIBANDING[] = "antibanding-values";
 const char CameraParameters::KEY_SCENE_MODE[] = "scene-mode";
 const char CameraParameters::KEY_SUPPORTED_SCENE_MODES[] = "scene-mode-values";
+const char CameraParameters::KEY_SCENE_DETECT[] = "scene-detect";
+const char CameraParameters::KEY_SUPPORTED_SCENE_DETECT[] = "scene-detect-values";
 const char CameraParameters::KEY_FLASH_MODE[] = "flash-mode";
 const char CameraParameters::KEY_SUPPORTED_FLASH_MODES[] = "flash-mode-values";
 const char CameraParameters::KEY_FOCUS_MODE[] = "focus-mode";
@@ -134,6 +136,10 @@ const char CameraParameters::SCENE_MODE_CANDLELIGHT[] = "candlelight";
 const char CameraParameters::SCENE_MODE_BACKLIGHT[] = "backlight";
 const char CameraParameters::SCENE_MODE_FLOWERS[] = "flowers";
 const char CameraParameters::SCENE_MODE_BARCODE[] = "barcode";
+
+// Values for auto scene detection settings.
+const char CameraParameters::SCENE_DETECT_OFF[] = "off";
+const char CameraParameters::SCENE_DETECT_ON[] = "on";
 
 // Formats for setPreviewFormat and setPictureFormat.
 const char CameraParameters::PIXEL_FORMAT_YUV422SP[] = "yuv422sp";
