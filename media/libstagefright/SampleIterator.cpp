@@ -179,7 +179,7 @@ status_t SampleIterator::findChunkRange(uint32_t sampleIndex) {
     return OK;
 }
 
-status_t SampleIterator::getChunkOffset(uint32_t chunk, off_t *offset) {
+status_t SampleIterator::getChunkOffset(uint32_t chunk, sfoff_t *offset) {
     *offset = 0;
 
     if (chunk >= mTable->mNumChunkOffsets) {

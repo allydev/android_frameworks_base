@@ -19,6 +19,7 @@
 #define MEDIA_EXTRACTOR_H_
 
 #include <utils/RefBase.h>
+#include <media/stagefright/Types.h>
 
 namespace android {
 

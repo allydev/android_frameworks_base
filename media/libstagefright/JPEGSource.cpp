@@ -141,7 +141,7 @@ status_t JPEGSource::parseJPEG() {
     mWidth = 0;
     mHeight = 0;
 
-    off_t i = 0;
+    sfoff_t i = 0;
 
     uint16_t soi;
     if (!mSource->getUInt16(i, &soi)) {

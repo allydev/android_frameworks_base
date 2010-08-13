@@ -65,7 +65,7 @@ status_t CachingDataSource::initCheck() const {
     return mSource->initCheck();
 }
 
-status_t CachingDataSource::getSize(off_t *size) {
+status_t CachingDataSource::getSize(sfoff_t *size) {
     return mSource->getSize(size);
 }
 
@@ -73,7 +73,7 @@ uint32_t CachingDataSource::flags() {
     return mSource->flags();
 }
 
-ssize_t CachingDataSource::readAt(off_t offset, void *data, size_t size) {
+ssize_t CachingDataSource::readAt(sfoff_t offset, void *data, size_t size) {
     Mutex::Autolock autoLock(mLock);
 
     size_t total = 0;
@@ -81,7 +81,7 @@ ssize_t CachingDataSource::readAt(off_t offset, void *data, size_t size) {
         Page *page = mFirst;
         while (page != NULL) {
             if (page->mOffset >= 0 && offset >= page->mOffset
-                && offset < page->mOffset + (off_t)page->mLength) {
+                && offset < page->mOffset + (sfoff_t)page->mLength) {
                 break;
             }
             page = page->mNext;
@@ -105,7 +105,7 @@ ssize_t CachingDataSource::readAt(off_t offset, void *data, size_t size) {
                 return n;
             }
 
-            if (offset >= page->mOffset + (off_t)page->mLength) {
+            if (offset >= page->mOffset + (sfoff_t)page->mLength) {
                 break;
             }
         } else {

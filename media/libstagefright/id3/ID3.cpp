@@ -689,7 +689,7 @@ ID3::getAlbumArt(size_t *length, String8 *mime) const {
 bool ID3::parseV1(const sp<DataSource> &source) {
     const size_t V1_TAG_SIZE = 128;
 
-    off_t size;
+    sfoff_t size;
     if (source->getSize(&size) != OK || size < (off_t)V1_TAG_SIZE) {
         return false;
     }

@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include <media/stagefright/MediaErrors.h>
+#include <media/stagefright/DataSource.h>
 #include <utils/RefBase.h>
 #include <utils/threads.h>
 
@@ -36,17 +37,17 @@ public:
 
     // type can be 'stco' or 'co64'.
     status_t setChunkOffsetParams(
-            uint32_t type, off_t data_offset, size_t data_size);
+            uint32_t type, sfoff_t data_offset, size_t data_size);
 
-    status_t setSampleToChunkParams(off_t data_offset, size_t data_size);
+    status_t setSampleToChunkParams(sfoff_t data_offset, size_t data_size);
 
     // type can be 'stsz' or 'stz2'.
     status_t setSampleSizeParams(
-            uint32_t type, off_t data_offset, size_t data_size);
+            uint32_t type, sfoff_t data_offset, size_t data_size);
 
-    status_t setTimeToSampleParams(off_t data_offset, size_t data_size);
+    status_t setTimeToSampleParams(sfoff_t data_offset, size_t data_size);
 
-    status_t setSyncSampleParams(off_t data_offset, size_t data_size);
+    status_t setSyncSampleParams(sfoff_t data_offset, size_t data_size);
 
     ////////////////////////////////////////////////////////////////////////////
 
@@ -58,7 +59,7 @@ public:
 
     status_t getMetaDataForSample(
             uint32_t sampleIndex,
-            off_t *offset,
+            sfoff_t *offset,
             size_t *size,
             uint32_t *decodingTime);
 
@@ -82,14 +83,14 @@ private:
     sp<DataSource> mDataSource;
     Mutex mLock;
 
-    off_t mChunkOffsetOffset;
+    sfoff_t mChunkOffsetOffset;
     uint32_t mChunkOffsetType;
     uint32_t mNumChunkOffsets;
 
-    off_t mSampleToChunkOffset;
+    sfoff_t mSampleToChunkOffset;
     uint32_t mNumSampleToChunkOffsets;
 
-    off_t mSampleSizeOffset;
+    sfoff_t mSampleSizeOffset;
     uint32_t mSampleSizeFieldSize;
     uint32_t mDefaultSampleSize;
     uint32_t mNumSampleSizes;
@@ -97,7 +98,7 @@ private:
     uint32_t mTimeToSampleCount;
     uint32_t *mTimeToSample;
 
-    off_t mSyncSampleOffset;
+    sfoff_t mSyncSampleOffset;
     uint32_t mNumSyncSamples;
 
     SampleIterator *mSampleIterator;

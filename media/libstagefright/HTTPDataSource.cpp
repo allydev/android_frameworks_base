@@ -29,7 +29,7 @@
 
 namespace android {
 
-status_t HTTPDataSource::connectWithRedirectsAndRange(off_t rangeStart) {
+status_t HTTPDataSource::connectWithRedirectsAndRange(sfoff_t rangeStart) {
     string host = mStartingHost.string();
     string path = mStartingPath.string();
     int port = mStartingPort;
@@ -273,7 +273,7 @@ status_t HTTPDataSource::initCheck() const {
     return (mState == CONNECTED) ? (status_t)OK : ERROR_NOT_CONNECTED;
 }
 
-status_t HTTPDataSource::getSize(off_t *size) {
+status_t HTTPDataSource::getSize(sfoff_t *size) {
     *size = 0;
 
     {
@@ -320,7 +320,7 @@ ssize_t HTTPDataSource::sendRangeRequest(size_t offset) {
     return contentLength;
 }
 
-ssize_t HTTPDataSource::readAt(off_t offset, void *data, size_t size) {
+ssize_t HTTPDataSource::readAt(sfoff_t offset, void *data, size_t size) {
     LOGV("readAt %ld, size %d", offset, size);
 
 rinse_repeat:
@@ -332,7 +332,7 @@ rinse_repeat:
     }
 
     if (offset >= mBufferOffset
-            && offset < (off_t)(mBufferOffset + mBufferLength)) {
+            && offset < (sfoff_t)(mBufferOffset + mBufferLength)) {
         size_t num_bytes_available = mBufferLength - (offset - mBufferOffset);
 
         size_t copy = num_bytes_available;
@@ -350,7 +350,7 @@ rinse_repeat:
     }
 
     ssize_t contentLength = 0;
-    if (offset != (off_t)(mBufferOffset + mBufferLength)) {
+    if (offset != (sfoff_t)(mBufferOffset + mBufferLength)) {
         LOGV("new range offset=%ld (old=%ld)",
              offset, mBufferOffset + mBufferLength);
 
@@ -368,7 +368,7 @@ rinse_repeat:
     mBufferOffset = offset;
 
     if (mContentLengthValid
-            && mBufferOffset + contentLength >= (off_t)mContentLength) {
+            && mBufferOffset + contentLength >= (sfoff_t)mContentLength) {
         // If we never triggered a range request but know the content length,
         // make sure to not read more data than there could be, otherwise
         // we'd block indefinitely if the server doesn't close the connection.

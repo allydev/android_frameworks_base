@@ -29,7 +29,7 @@
 
 namespace android {
 
-bool DataSource::getUInt16(off_t offset, uint16_t *x) {
+bool DataSource::getUInt16(sfoff_t offset, uint16_t *x) {
     *x = 0;
 
     uint8_t byte[2];
@@ -42,7 +42,7 @@ bool DataSource::getUInt16(off_t offset, uint16_t *x) {
     return true;
 }
 
-status_t DataSource::getSize(off_t *size) {
+status_t DataSource::getSize(sfoff_t *size) {
     *size = 0;
 
     return ERROR_UNSUPPORTED;

@@ -41,7 +41,7 @@ protected:
 
 private:
     sp<DataSource> mDataSource;
-    off_t mFirstFramePos;
+    sfoff_t mFirstFramePos;
     sp<MetaData> mMeta;
     uint32_t mFixedHeader;
     int32_t mByteNumber; // total number of bytes in this MP3

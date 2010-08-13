@@ -52,7 +52,7 @@ private:
 
     struct SampleInfo {
         size_t size;
-        off_t offset;
+        sfoff_t offset;
         int64_t timestamp;
     };
     List<SampleInfo> mSampleInfos;
@@ -200,10 +200,10 @@ void MPEG4Writer::stop() {
     mFile = NULL;
 }
 
-off_t MPEG4Writer::addSample(MediaBuffer *buffer) {
+sfoff_t MPEG4Writer::addSample(MediaBuffer *buffer) {
     Mutex::Autolock autoLock(mLock);
 
-    off_t old_offset = mOffset;
+    sfoff_t old_offset = mOffset;
 
     fwrite((const uint8_t *)buffer->data() + buffer->range_offset(),
            1, buffer->range_length(), mFile);
@@ -213,10 +213,10 @@ off_t MPEG4Writer::addSample(MediaBuffer *buffer) {
     return old_offset;
 }
 
-off_t MPEG4Writer::addLengthPrefixedSample(MediaBuffer *buffer) {
+sfoff_t MPEG4Writer::addLengthPrefixedSample(MediaBuffer *buffer) {
     Mutex::Autolock autoLock(mLock);
 
-    off_t old_offset = mOffset;
+    sfoff_t old_offset = mOffset;
 
     size_t length = buffer->range_length();
     CHECK(length < 65536);
@@ -246,7 +246,7 @@ void MPEG4Writer::beginBox(const char *fourcc) {
 void MPEG4Writer::endBox() {
     CHECK(!mBoxes.empty());
 
-    off_t offset = *--mBoxes.end();
+    sfoff_t offset = *--mBoxes.end();
     mBoxes.erase(--mBoxes.end());
 
     fseek(mFile, offset, SEEK_SET);
@@ -476,7 +476,7 @@ void MPEG4Writer::Track::threadEntry() {
             buffer->set_range(buffer->range_offset() + offset, size - offset);
         }
 
-        off_t offset = is_avc ? mOwner->addLengthPrefixedSample(buffer)
+        sfoff_t offset = is_avc ? mOwner->addLengthPrefixedSample(buffer)
                               : mOwner->addSample(buffer);
 
         SampleInfo info;

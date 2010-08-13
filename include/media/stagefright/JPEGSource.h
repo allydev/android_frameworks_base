@@ -19,6 +19,7 @@
 #define JPEG_SOURCE_H_
 
 #include <media/stagefright/MediaSource.h>
+#include <media/stagefright/Types.h>
 
 namespace android {
 
@@ -42,9 +43,9 @@ private:
     sp<DataSource> mSource;
     MediaBufferGroup *mGroup;
     bool mStarted;
-    off_t mSize;
+    sfoff_t mSize;
     int32_t mWidth, mHeight;
-    off_t mOffset;
+    sfoff_t mOffset;
 
     status_t parseJPEG();
 

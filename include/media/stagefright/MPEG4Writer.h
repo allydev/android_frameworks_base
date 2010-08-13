@@ -57,16 +57,16 @@ private:
     class Track;
 
     FILE *mFile;
-    off_t mOffset;
-    off_t mMdatOffset;
+    sfoff_t mOffset;
+    sfoff_t mMdatOffset;
     Mutex mLock;
 
     List<Track *> mTracks;
 
-    List<off_t> mBoxes;
+    List<sfoff_t> mBoxes;
 
-    off_t addSample(MediaBuffer *buffer);
-    off_t addLengthPrefixedSample(MediaBuffer *buffer);
+    sfoff_t addSample(MediaBuffer *buffer);
+    sfoff_t addLengthPrefixedSample(MediaBuffer *buffer);
 
     MPEG4Writer(const MPEG4Writer &);
     MPEG4Writer &operator=(const MPEG4Writer &);

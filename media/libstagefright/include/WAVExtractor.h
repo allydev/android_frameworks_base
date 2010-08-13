@@ -46,7 +46,7 @@ private:
     uint16_t mNumChannels;
     uint32_t mSampleRate;
     uint16_t mBitsPerSample;
-    off_t mDataOffset;
+    sfoff_t mDataOffset;
     size_t mDataSize;
     sp<MetaData> mTrackMeta;
 

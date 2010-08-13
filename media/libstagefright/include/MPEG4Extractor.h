@@ -62,8 +62,8 @@ private:
     Vector<uint32_t> mPath;
 
     status_t readMetaData();
-    status_t parseChunk(off_t *offset, int depth);
-    status_t parseMetaData(off_t offset, size_t size);
+    status_t parseChunk(sfoff_t *offset, int depth);
+    status_t parseMetaData(sfoff_t offset, size_t size);
 
     status_t updateAudioTrackInfoFromESDS_MPEG4Audio(
             const void *esds_data, size_t esds_size);

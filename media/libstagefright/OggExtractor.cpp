@@ -73,7 +73,7 @@ struct MyVorbisExtractor {
     // Returns an approximate bitrate in bits per second.
     uint64_t approxBitrate();
 
-    status_t seekToOffset(off_t offset);
+    status_t seekToOffset(sfoff_t offset);
     status_t readNextPacket(MediaBuffer **buffer);
 
     void init();
@@ -89,20 +89,20 @@ private:
     };
 
     sp<DataSource> mSource;
-    off_t mOffset;
+    sfoff_t mOffset;
     Page mCurrentPage;
     size_t mCurrentPageSize;
     size_t mNextLaceIndex;
 
-    off_t mFirstDataOffset;
+    sfoff_t mFirstDataOffset;
 
     vorbis_info mVi;
     vorbis_comment mVc;
 
     sp<MetaData> mMeta;
 
-    ssize_t readPage(off_t offset, Page *page);
-    status_t findNextPage(off_t startOffset, off_t *pageOffset);
+    ssize_t readPage(sfoff_t offset, Page *page);
+    status_t findNextPage(sfoff_t startOffset, sfoff_t *pageOffset);
 
     void verifyHeader(
             MediaBuffer *buffer, uint8_t type);
@@ -150,7 +150,7 @@ status_t OggSource::read(
 
     int64_t seekTimeUs;
     if (options && options->getSeekTo(&seekTimeUs)) {
-        off_t pos = seekTimeUs * mExtractor->mImpl->approxBitrate() / 8000000ll;
+        sfoff_t pos = seekTimeUs * mExtractor->mImpl->approxBitrate() / 8000000ll;
         LOGI("seeking to offset %ld", pos);
 
         if (mExtractor->mImpl->seekToOffset(pos) != OK) {
@@ -198,7 +198,7 @@ sp<MetaData> MyVorbisExtractor::getFormat() const {
 }
 
 status_t MyVorbisExtractor::findNextPage(
-        off_t startOffset, off_t *pageOffset) {
+        sfoff_t startOffset, sfoff_t *pageOffset) {
     *pageOffset = startOffset;
 
     for (;;) {
@@ -224,14 +224,14 @@ status_t MyVorbisExtractor::findNextPage(
     }
 }
 
-status_t MyVorbisExtractor::seekToOffset(off_t offset) {
+status_t MyVorbisExtractor::seekToOffset(sfoff_t offset) {
     if (mFirstDataOffset >= 0 && offset < mFirstDataOffset) {
         // Once we know where the actual audio data starts (past the headers)
         // don't ever seek to anywhere before that.
         offset = mFirstDataOffset;
     }
 
-    off_t pageOffset;
+    sfoff_t pageOffset;
     status_t err = findNextPage(offset, &pageOffset);
 
     if (err != OK) {
@@ -249,7 +249,7 @@ status_t MyVorbisExtractor::seekToOffset(off_t offset) {
     return OK;
 }
 
-ssize_t MyVorbisExtractor::readPage(off_t offset, Page *page) {
+ssize_t MyVorbisExtractor::readPage(sfoff_t offset, Page *page) {
     uint8_t header[27];
     if (mSource->readAt(offset, header, sizeof(header))
             < (ssize_t)sizeof(header)) {
@@ -333,7 +333,7 @@ status_t MyVorbisExtractor::readNextPacket(MediaBuffer **out) {
         }
 
         if (mNextLaceIndex < mCurrentPage.mNumSegments) {
-            off_t dataOffset = mOffset + 27 + mCurrentPage.mNumSegments;
+            sfoff_t dataOffset = mOffset + 27 + mCurrentPage.mNumSegments;
             for (size_t j = 0; j < mNextLaceIndex; ++j) {
                 dataOffset += mCurrentPage.mLace[j];
             }
@@ -497,7 +497,7 @@ void MyVorbisExtractor::verifyHeader(
             LOGV("nominal-bitrate = %ld", mVi.bitrate_nominal);
             LOGV("window-bitrate = %ld", mVi.bitrate_window);
 
-            off_t size;
+            sfoff_t size;
             if (mSource->getSize(&size) == OK) {
                 uint64_t bps = approxBitrate();
 

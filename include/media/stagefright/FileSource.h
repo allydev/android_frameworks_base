@@ -33,9 +33,9 @@ public:
 
     virtual status_t initCheck() const;
 
-    virtual ssize_t readAt(off_t offset, void *data, size_t size);
+    virtual ssize_t readAt(sfoff_t offset, void *data, size_t size);
 
-    virtual status_t getSize(off_t *size);
+    virtual status_t getSize(sfoff_t *size);
 
 protected:
     virtual ~FileSource();

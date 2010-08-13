@@ -41,9 +41,9 @@ public:
 
     virtual status_t initCheck() const;
 
-    virtual ssize_t readAt(off_t offset, void *data, size_t size);
+    virtual ssize_t readAt(sfoff_t offset, void *data, size_t size);
 
-    virtual status_t getSize(off_t *size);
+    virtual status_t getSize(sfoff_t *size);
 
     virtual uint32_t flags();
 
@@ -78,7 +78,7 @@ private:
 
     void *mBuffer;
     size_t mBufferLength;
-    off_t mBufferOffset;
+    sfoff_t mBufferOffset;
 
     bool mContentLengthValid;
     unsigned long long mContentLength;
@@ -90,7 +90,7 @@ private:
     ssize_t sendRangeRequest(size_t offset);
     void initHeaders(const KeyedVector<String8, String8> *overrides);
 
-    status_t connectWithRedirectsAndRange(off_t rangeStart);
+    status_t connectWithRedirectsAndRange(sfoff_t rangeStart);
     void applyTimeoutResponse();
 
     HTTPDataSource(const HTTPDataSource &);
