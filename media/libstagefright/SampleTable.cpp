@@ -338,7 +338,7 @@ status_t SampleTable::findClosestSample(
                 *sample_index = cur_sample + j + 1;
             }
 
-            if (flags & kSyncSample_Flag) {
+            if ((flags & kSyncSample_Flag) && mNumSyncSamples) {
                 return findClosestSyncSample_l(*sample_index, sample_index);
             }
 
