@@ -937,8 +937,8 @@ void AwesomePlayer::onVideoEvent() {
 
     int64_t latenessUs = nowUs - timeUs;
 
-    if (latenessUs > 40000) {
-        // We're more than 40ms late.
+    if (latenessUs > 200000) {
+        // We're more than 200ms late.
         LOGV("we're late by %lld us (%.2f secs)", latenessUs, latenessUs / 1E6);
 
         mVideoBuffer->release();
@@ -948,8 +948,8 @@ void AwesomePlayer::onVideoEvent() {
         return;
     }
 
-    if (latenessUs < -10000) {
-        // We're more than 10ms early.
+    if (latenessUs < -50000) {
+        // We're more than 50ms early.
 
         postVideoEvent_l(10000);
         return;
