@@ -1645,7 +1645,7 @@ bool SniffMPEG4(
         || !memcmp(header, "ftypM4A ", 8) || !memcmp(header, "ftypf4v ", 8)
         || !memcmp(header, "ftypkddi", 8) || !memcmp(header, "ftypM4VP", 8)) {
         *mimeType = MEDIA_MIMETYPE_CONTAINER_MPEG4;
-        *confidence = 0.1;
+        *confidence = 0.5;
 
         return true;
     }
