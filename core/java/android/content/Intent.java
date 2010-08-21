@@ -1584,6 +1584,23 @@ public class Intent implements Parcelable, Cloneable {
     public static final String ACTION_UMS_CONNECTED = "android.intent.action.UMS_CONNECTED";
 
     /**
+     * Broadcast Action:  The device has detected USB connection.
+     * This is used mainly for the USB tethering.
+     * Apps should listen for ACTION_USB_CONNECTED to detect USB connection.
+     * @hide
+     */
+    @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
+    public static final String ACTION_USB_CONNECTED = "android.intent.action.USB_CONNECTED";
+    /**
+     * Broadcast Action:  The device has detected USB disconnection.
+     * This is used mainly for the USB tethering.
+     * Apps should listen for ACTION_USB_DISCONNECTED to detect USB disconnection.
+     * @hide
+     */
+    @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
+    public static final String ACTION_USB_DISCONNECTED = "android.intent.action.USB_DISCONNECTED";
+
+    /**
      * Broadcast Action:  The device has exited USB Mass Storage mode.
      * This is used mainly for the USB Settings panel.
      * Apps should listen for ACTION_MEDIA_MOUNTED and ACTION_MEDIA_UNMOUNTED broadcasts to be notified

@@ -71,6 +71,9 @@ class NetworkManagementService extends INetworkManagementService.Stub {
         public static final int InterfaceTxThrottleResult = 219;
 
         public static final int InterfaceChange           = 600;
+
+        public static final int UsbConnected              = 610;
+
     }
 
     /**
@@ -127,6 +130,27 @@ class NetworkManagementService extends INetworkManagementService.Stub {
             }
         }
     }
+
+    /**
+     * Notify USB connceted
+     */
+    private void notifyUsbConnected(String method, final boolean avail) {
+        if (!method.equals("usb")) {
+           Slog.w(TAG, "Ignoring unsupported share method {" + method + "}");
+           return;
+        }
+        sendUsbIntent(avail);
+    }
+
+    /**
+     * Broadcasting USB connected/disconnected intent
+     */
+    private void sendUsbIntent(boolean c) {
+        Slog.d(TAG, "sending USB Intent");
+        mContext.sendBroadcast(
+                new Intent((c ? Intent.ACTION_USB_CONNECTED : Intent.ACTION_USB_DISCONNECTED)));
+    }
+
 
     /**
      * Notify our observers of an interface addition.
@@ -190,10 +214,19 @@ class NetworkManagementService extends INetworkManagementService.Stub {
                 }
                 throw new IllegalStateException(
                         String.format("Invalid event from daemon (%s)", raw));
+            } else if (code == NetdResponseCode.UsbConnected) {
+                // FMT: NNN Share method <method> now <available|unavailable>
+                boolean avail = false;
+                if (cooked[5].equals("available")) {
+                    avail = true;
+                }
+                notifyUsbConnected(cooked[3], avail);
+            } else {
+                return false;
             }
-            return false;
-        }
-    }
+            return true;
+         }
+      }
 
     private static int stringToIpAddr(String addrString) throws UnknownHostException {
         try {

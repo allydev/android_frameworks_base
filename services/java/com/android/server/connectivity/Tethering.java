@@ -42,6 +42,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -107,13 +108,16 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
 
     // whether we can tether is the && of these two - they come in as separate
     // broadcasts so track them so we can decide what to do when either changes
-    private boolean mUsbMassStorageOff;  // track the status of USB Mass Storage
+    private boolean mEnableTethering;  // track the status of USB Mass Storage
     private boolean mUsbConnected;       // track the status of USB connection
+    private boolean mAllowTetherUms;
 
     public Tethering(Context context, Looper looper) {
         Log.d(TAG, "Tethering starting");
         mContext = context;
         mLooper = looper;
+
+        mAllowTetherUms = SystemProperties.getBoolean("ro.usb.allow.tether.ums",false);
 
         // register for notifications from NetworkManagement Service
         IBinder b = ServiceManager.getService(Context.NETWORKMANAGEMENT_SERVICE);
@@ -135,19 +139,23 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
 
         mStateReceiver = new StateReceiver();
         IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_BATTERY_CHANGED);
+        filter.addAction(Intent.ACTION_USB_CONNECTED);
+        filter.addAction(Intent.ACTION_USB_DISCONNECTED);
         filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         filter.addAction(Intent.ACTION_BOOT_COMPLETED);
         mContext.registerReceiver(mStateReceiver, filter);
 
-        filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_MEDIA_SHARED);
-        filter.addAction(Intent.ACTION_MEDIA_UNSHARED);
-        filter.addDataScheme("file");
-        mContext.registerReceiver(mStateReceiver, filter);
-
-        mUsbMassStorageOff = !Environment.MEDIA_SHARED.equals(
-                Environment.getExternalStorageState());
+        if (!mAllowTetherUms) {
+            filter = new IntentFilter();
+            filter.addAction(Intent.ACTION_MEDIA_SHARED);
+            filter.addAction(Intent.ACTION_MEDIA_UNSHARED);
+            filter.addDataScheme("file");
+            mContext.registerReceiver(mStateReceiver, filter);
+            mEnableTethering = !Environment.MEDIA_SHARED.equals(
+                   Environment.getExternalStorageState());
+        } else {
+            mEnableTethering = true;
+        }
 
         mDhcpRange = context.getResources().getStringArray(
                 com.android.internal.R.array.config_tether_dhcp_range);
@@ -414,7 +422,7 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
     }
 
     private void updateUsbStatus() {
-        boolean enable = mUsbConnected && mUsbMassStorageOff;
+        boolean enable = mUsbConnected && mEnableTethering;
 
         if (mBooted) {
             enableUsbIfaces(enable);
@@ -424,22 +432,30 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
     private class StateReceiver extends BroadcastReceiver {
         public void onReceive(Context content, Intent intent) {
             String action = intent.getAction();
-            if (action.equals(Intent.ACTION_BATTERY_CHANGED)) {
-                mUsbConnected = (intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1)
-                        == BatteryManager.BATTERY_PLUGGED_USB);
+            if (action.equals(Intent.ACTION_USB_CONNECTED) ||
+                action.equals(Intent.ACTION_USB_DISCONNECTED)) {
+                Log.d(TAG, "in onReceive: Setting mUsbConnected");
+                mUsbConnected = action.equals(Intent.ACTION_USB_CONNECTED);
+                Log.d(TAG, "in onReceive: mUsbConnected" + mUsbConnected);
                 Tethering.this.updateUsbStatus();
             } else if (action.equals(Intent.ACTION_MEDIA_SHARED)) {
-                mUsbMassStorageOff = false;
+                mEnableTethering = false;
                 updateUsbStatus();
             }
             else if (action.equals(Intent.ACTION_MEDIA_UNSHARED)) {
-                mUsbMassStorageOff = true;
+                mEnableTethering = true;
                 updateUsbStatus();
             } else if (action.equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
                 Log.d(TAG, "Tethering got CONNECTIVITY_ACTION");
                 mTetherMasterSM.sendMessage(TetherMasterSM.CMD_UPSTREAM_CHANGED);
             } else if (action.equals(Intent.ACTION_BOOT_COMPLETED)) {
                 mBooted = true;
+                /*
+                 * If USB is connected on boot update the usb status
+                 */
+                if ("1".equals(SystemProperties.get("persist.usb.onboot"))) {
+                    mUsbConnected = true;
+                }
                 updateUsbStatus();
             }
         }
