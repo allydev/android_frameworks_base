@@ -603,12 +603,19 @@ status_t MPEG4Extractor::parseChunk(off_t *offset, int depth) {
                 duration = U64_AT(&buffer[28]);
                 width = U32_AT(&buffer[88]);
                 height = U32_AT(&buffer[92]);
+
+                //TODO - check rotation matrix for files of version 1
+                int32_t rotation  = 0;
+                mLastTrack->meta->setInt32( kKeyRotation, rotation );
+
             } else if (version == 0) {
+                LOGV("Checking track header for version 0");
                 if (chunk_data_size != 24 + 60) {
                     return ERROR_MALFORMED;
                 }
 
                 uint8_t buffer[24 + 60];
+                uint32_t matrix[ 9 ];
                 if (mDataSource->readAt(
                             data_offset, buffer, sizeof(buffer)) < (ssize_t)sizeof(buffer)) {
                     return ERROR_IO;
@@ -617,8 +624,37 @@ status_t MPEG4Extractor::parseChunk(off_t *offset, int depth) {
                 mtime = U32_AT(&buffer[8]);
                 id = U32_AT(&buffer[12]);
                 duration = U32_AT(&buffer[20]);
+
+                for( int i = 0; i < 9; i++){
+                  matrix[i] = U32_AT(buffer + 40 + i*4 );
+                }
+
                 width = U32_AT(&buffer[76]);
                 height = U32_AT(&buffer[80]);
+
+                int32_t rotation = 0; //default rotation value
+                if( matrix[ 0 ] == 0x00010000 && matrix[ 1 ] == 0x00000000 &&
+                    matrix[ 3 ] == 0x00000000 && matrix[ 4 ] == 0x00010000 ){
+                  rotation = 0;
+                }
+                else if( matrix[ 0 ] == 0x00000000 && matrix[ 1 ] == 0x00010000 &&
+                         matrix[ 3 ] == 0xffff0000 && matrix[ 4 ] == 0x00000000 ){
+                  rotation = 90;
+                }
+                else if( matrix[ 0 ] == 0xffff0000 && matrix[ 1 ] == 0x00000000 &&
+                         matrix[ 3 ] == 0x00000000 && matrix[ 4 ] == 0xffff0000 ){
+                  rotation = 180;
+                }
+                else if( matrix[ 0 ] == 0x00000000 && matrix[ 1 ] == 0xffff0000 &&
+                         matrix[ 3 ] == 0x00010000 && matrix[ 4 ] == 0x00000000 ){
+                  rotation = 270;
+                }
+                else {
+                  LOGW("Unknown rotation matrix, setting to 0");
+                }
+
+                LOGV("Setting rotation to %d", rotation );
+                mLastTrack->meta->setInt32( kKeyRotation, rotation );
             }
 
             *offset += chunk_size;

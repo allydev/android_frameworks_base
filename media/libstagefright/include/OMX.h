@@ -121,7 +121,8 @@ public:
             const char *componentName,
             OMX_COLOR_FORMATTYPE colorFormat,
             size_t encodedWidth, size_t encodedHeight,
-            size_t displayWidth, size_t displayHeight);
+            size_t displayWidth, size_t displayHeight,
+            size_t rotation = 0 , size_t flags = 0);
 
     virtual void binderDied(const wp<IBinder> &the_late_who);
 
