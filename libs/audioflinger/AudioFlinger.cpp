@@ -3476,7 +3476,7 @@ bool AudioFlinger::RecordThread::threadLoop()
 
                             if (mBytesRead < 0) {
                                 LOGE("Error reading audio input");
-                                if (mActiveTrack->mState == TrackBase::ACTIVE && mBytesRead == -1) {
+                                if (mActiveTrack->mState == TrackBase::ACTIVE) {
                                     // Force input into standby so that it tries to
                                     // recover at next read attempt
                                     mInput->standby();
