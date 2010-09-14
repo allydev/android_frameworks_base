@@ -88,7 +88,11 @@ LOGE("***************AudioPlayer::start(");
                 DEFAULT_AUDIOSINK_BUFFERCOUNT,
                 &AudioPlayer::AudioSinkCallback, this);
         if (err != OK) {
-            mSource->stop();
+
+            // Awesome player calls stop() on the decoder instance when audioplayer
+            // start() fails. On second stop() call, decoder instance throws a  fatal
+            // exception. Removing the stop() in audioplayer to handle this scenario.
+            //mSource->stop();
 
             return err;
         }
@@ -109,7 +113,10 @@ LOGE("***************AudioPlayer::start(");
             delete mAudioTrack;
             mAudioTrack = NULL;
 
-            mSource->stop();
+            // Awesome player calls stop() on the decoder instance when audioplayer
+            // start() fails. On second stop() call, decoder instance throws a  fatal
+            // exception. Removing the stop() in audioplayer to handle this scenario.
+            //mSource->stop();
 
             return err;
         }
