@@ -25,6 +25,7 @@
 #include <media/stagefright/HTTPDataSource.h>
 #include <media/stagefright/OMXClient.h>
 #include <utils/threads.h>
+#define BUFFER_QUEUE_CAPACITY 3
 
 namespace android {
 
@@ -163,8 +164,11 @@ private:
     void postCheckAudioStatusEvent_l();
     status_t play_l();
 
-    MediaBuffer *mLastVideoBuffer;
-    MediaBuffer *mVideoBuffer;
+    MediaBuffer **mVideoBuffer;
+    int mVideoQueueFront;
+    int mVideoQueueBack;
+    int mVideoQueueSize;
+    int mNumFramesToHold;
 
     sp<Prefetcher> mPrefetcher;
     sp<HTTPDataSource> mConnectingDataSource;
@@ -228,6 +232,7 @@ private:
     status_t finishSetDataSource_l();
 
     static bool ContinuePreparation(void *cookie);
+    void setNumFramesToHold();
 
     AwesomePlayer(const AwesomePlayer &);
     AwesomePlayer &operator=(const AwesomePlayer &);
