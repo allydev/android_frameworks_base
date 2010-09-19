@@ -1,3 +1,7 @@
+/*--------------------------------------------------------------------------
+Copyright (c) 2010, Code Aurora Forum. All rights reserved.
+--------------------------------------------------------------------------*/
+
 //#define LOG_NDEBUG 0
 #define LOG_TAG "IOMX"
 #include <utils/Log.h>
