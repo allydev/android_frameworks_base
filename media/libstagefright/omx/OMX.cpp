@@ -461,7 +461,8 @@ sp<IOMXRenderer> OMX::createRenderer(
         const char *componentName,
         OMX_COLOR_FORMATTYPE colorFormat,
         size_t encodedWidth, size_t encodedHeight,
-        size_t displayWidth, size_t displayHeight) {
+        size_t displayWidth, size_t displayHeight,
+        size_t rotation, size_t flags ) {
     Mutex::Autolock autoLock(mLock);
 
     VideoRenderer *impl = NULL;
@@ -474,28 +475,35 @@ sp<IOMXRenderer> OMX::createRenderer(
                 const char *componentName,
                 OMX_COLOR_FORMATTYPE colorFormat,
                 size_t displayWidth, size_t displayHeight,
-                size_t decodedWidth, size_t decodedHeight);
+                size_t decodedWidth, size_t decodedHeight,
+                size_t rotation, size_t flags );
 
+        //use extern C to get shorter unmangled name
         CreateRendererFunc func =
-            (CreateRendererFunc)dlsym(
-                    libHandle,
-                    "_Z14createRendererRKN7android2spINS_8ISurfaceEEEPKc20"
-                    "OMX_COLOR_FORMATTYPEjjjj");
+          (CreateRendererFunc)dlsym(libHandle,
+                                    "_Z14createRendererRKN7android2spINS_8ISurfaceEEEPKc20OMX_COLOR_FORMATTYPEjjjjjj");
 
         if (func) {
             impl = (*func)(surface, componentName, colorFormat,
-                    displayWidth, displayHeight, encodedWidth, encodedHeight);
+                           displayWidth, displayHeight, encodedWidth, encodedHeight,
+                           rotation, flags );
 
             if (impl) {
                 impl = new SharedVideoRenderer(libHandle, impl);
                 libHandle = NULL;
             }
         }
+        else {
+          LOGE("Couldnt resolve symbol");
+        }
 
         if (libHandle) {
             dlclose(libHandle);
             libHandle = NULL;
         }
+    }
+    else {
+      LOGE("Couldnt get libhandle");
     }
 
     if (!impl) {

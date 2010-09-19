@@ -39,11 +39,13 @@ sp<IOMXRenderer> IOMX::createRenderer(
         const char *componentName,
         OMX_COLOR_FORMATTYPE colorFormat,
         size_t encodedWidth, size_t encodedHeight,
-        size_t displayWidth, size_t displayHeight) {
+        size_t displayWidth, size_t displayHeight,
+        size_t rotation , size_t flags ) {
     return createRenderer(
             surface->getISurface(),
             componentName, colorFormat, encodedWidth, encodedHeight,
-            displayWidth, displayHeight);
+            displayWidth, displayHeight,
+            rotation, flags );
 }
 
 sp<IOMXRenderer> IOMX::createRendererFromJavaSurface(
@@ -68,7 +70,7 @@ sp<IOMXRenderer> IOMX::createRendererFromJavaSurface(
 
     return createRenderer(
             surface, componentName, colorFormat, encodedWidth,
-            encodedHeight, displayWidth, displayHeight);
+            encodedHeight, displayWidth, displayHeight );
 }
 
 class BpOMX : public BpInterface<IOMX> {
@@ -350,7 +352,8 @@ public:
             const char *componentName,
             OMX_COLOR_FORMATTYPE colorFormat,
             size_t encodedWidth, size_t encodedHeight,
-            size_t displayWidth, size_t displayHeight) {
+            size_t displayWidth, size_t displayHeight,
+            size_t rotation, size_t flags ) {
         Parcel data, reply;
         data.writeInterfaceToken(IOMX::getInterfaceDescriptor());
 
@@ -361,6 +364,8 @@ public:
         data.writeInt32(encodedHeight);
         data.writeInt32(displayWidth);
         data.writeInt32(displayHeight);
+        data.writeInt32(rotation);
+        data.writeInt32(flags);
 
         remote()->transact(CREATE_RENDERER, data, &reply);
 
@@ -683,11 +688,14 @@ status_t BnOMX::onTransact(
             size_t encodedHeight = (size_t)data.readInt32();
             size_t displayWidth = (size_t)data.readInt32();
             size_t displayHeight = (size_t)data.readInt32();
+            size_t rotation = (size_t)data.readInt32( );
+            size_t flags = (size_t)data.readInt32( );
 
             sp<IOMXRenderer> renderer =
                 createRenderer(isurface, componentName, colorFormat,
                                encodedWidth, encodedHeight,
-                               displayWidth, displayHeight);
+                               displayWidth, displayHeight,
+                               rotation, flags );
 
             reply->writeStrongBinder(renderer->asBinder());
 

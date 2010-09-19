@@ -141,7 +141,7 @@ void AwesomeLocalRenderer::init(
         OMX_COLOR_FORMATTYPE colorFormat,
         const sp<ISurface> &surface,
         size_t displayWidth, size_t displayHeight,
-        size_t decodedWidth, size_t decodedHeight) {
+        size_t decodedWidth, size_t decodedHeight) { //not passing any rotation information for now
     if (!previewOnly) {
         // We will stick to the vanilla software-color-converting renderer
         // for "previewOnly" mode, to avoid unneccessarily switching overlays
@@ -155,7 +155,8 @@ void AwesomeLocalRenderer::init(
                     const char *componentName,
                     OMX_COLOR_FORMATTYPE colorFormat,
                     size_t displayWidth, size_t displayHeight,
-                    size_t decodedWidth, size_t decodedHeight);
+                    size_t decodedWidth, size_t decodedHeight,
+                    size_t rotation );
 
             CreateRendererFunc func =
                 (CreateRendererFunc)dlsym(
@@ -167,7 +168,7 @@ void AwesomeLocalRenderer::init(
                 mTarget =
                     (*func)(surface, componentName, colorFormat,
                         displayWidth, displayHeight,
-                        decodedWidth, decodedHeight);
+                            decodedWidth, decodedHeight, 0); //rotation comes here
             }
         }
     }
@@ -586,12 +587,17 @@ void AwesomePlayer::initRenderer_l() {
 
         int32_t format;
         const char *component;
-        int32_t decodedWidth, decodedHeight;
+        int32_t decodedWidth, decodedHeight, rotation ;
         CHECK(meta->findInt32(kKeyColorFormat, &format));
         CHECK(meta->findCString(kKeyDecoderComponent, &component));
         CHECK(meta->findInt32(kKeyWidth, &decodedWidth));
         CHECK(meta->findInt32(kKeyHeight, &decodedHeight));
+        CHECK(meta->findInt32(kKeyRotation, &rotation ));
 
+        //temporarily setting flags to 0.
+        //GPU composition flag will come in
+        //in the meta structure.
+        int32_t flags = 0;
         mVideoRenderer.clear();
 
         // Must ensure that mVideoRenderer's destructor is actually executed
@@ -607,7 +613,8 @@ void AwesomePlayer::initRenderer_l() {
                         mISurface, component,
                         (OMX_COLOR_FORMATTYPE)format,
                         decodedWidth, decodedHeight,
-                        mVideoWidth, mVideoHeight));
+                        mVideoWidth, mVideoHeight,
+                        rotation, flags ));
         } else {
             // Other decoders are instantiated locally and as a consequence
             // allocate their buffers in local address space.
@@ -617,7 +624,7 @@ void AwesomePlayer::initRenderer_l() {
                 (OMX_COLOR_FORMATTYPE)format,
                 mISurface,
                 mVideoWidth, mVideoHeight,
-                decodedWidth, decodedHeight);
+                decodedWidth, decodedHeight); //no rotation/flags being passed for now
         }
     }
 }

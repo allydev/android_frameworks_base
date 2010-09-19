@@ -65,6 +65,7 @@ enum {
     kKeyDiscNumber        = 'dnum',  // cstring
     kKeyDate              = 'date',  // cstring
     kKeyWriter            = 'writ',  // cstring
+    kKeyRotation          = 'rota',  // int32_t
 };
 
 enum {

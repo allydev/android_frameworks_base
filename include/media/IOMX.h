@@ -116,7 +116,8 @@ public:
             const char *componentName,
             OMX_COLOR_FORMATTYPE colorFormat,
             size_t encodedWidth, size_t encodedHeight,
-            size_t displayWidth, size_t displayHeight) = 0;
+            size_t displayWidth, size_t displayHeight,
+            size_t rotation = 0, size_t flags = 0 ) = 0;
 
     // Note: These methods are _not_ virtual, it exists as a wrapper around
     // the virtual "createRenderer" method above facilitating extraction
@@ -126,7 +127,8 @@ public:
             const char *componentName,
             OMX_COLOR_FORMATTYPE colorFormat,
             size_t encodedWidth, size_t encodedHeight,
-            size_t displayWidth, size_t displayHeight);
+            size_t displayWidth, size_t displayHeight,
+            size_t rotation = 0, size_t flags = 0 );
 
     sp<IOMXRenderer> createRendererFromJavaSurface(
             JNIEnv *env, jobject javaSurface,
