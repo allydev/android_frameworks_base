@@ -1436,7 +1436,7 @@ void OMXCodec::on_message(const omx_message &msg) {
                 }
 
                 MediaBuffer *buffer = info->mMediaBuffer;
-                if(mPmemInfo != NULL && buffer != NULL) {
+                if(!mOMXLivesLocally && mPmemInfo != NULL && buffer != NULL) {
                     OMX_U8* base = (OMX_U8*)mPmemInfo->getBase();
                     OMX_U8* data = base + msg.u.extended_buffer_data.pmem_offset;
                     buffer->setData(data);
