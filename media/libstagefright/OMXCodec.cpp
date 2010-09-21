@@ -965,7 +965,31 @@ status_t OMXCodec::setVideoOutputFormat(
         OMX_VIDEO_PARAM_PORTFORMATTYPE format;
         InitOMXParams(&format);
         format.nPortIndex = kPortIndexOutput;
+
+        // For 3rd party applications we want to iterate through all the
+        // supported color formats by the OMX component. If OMX codec is
+        // being run in a sepparate process, then pick the second iterated
+        // color format.
+#if 0
+        if (!strncmp(mComponentName, "OMX.qcom",8)) {
+            OMX_U32 index;
+
+            for(index = 0 ;; index++){
+              format.nIndex = index;
+                if(mOMX->getParameter(
+                            mNode, OMX_IndexParamVideoPortFormat,
+                            &format, sizeof(format)) != OK) {
+                    if(format.nIndex) format.nIndex--;
+                    break;
+                }
+            }
+            if(mOMXLivesLocally)
+              format.nIndex = 0;
+        } else
+          format.nIndex = 0;
+#else
         format.nIndex = 0;
+#endif
 
         status_t err = mOMX->getParameter(
                 mNode, OMX_IndexParamVideoPortFormat,
