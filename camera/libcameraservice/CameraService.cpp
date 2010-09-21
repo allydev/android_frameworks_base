@@ -1152,7 +1152,9 @@ void CameraService::Client::handleCompressedPicture(const sp<IMemory>& mem)
     if (c != NULL) {
         c->dataCallback(CAMERA_MSG_COMPRESSED_IMAGE, mem);
     }
-    mHardware->disableMsgType(CAMERA_MSG_COMPRESSED_IMAGE);
+    if(mHardware->msgTypeEnabled(CAMERA_MSG_COMPRESSED_IMAGE)){
+        mHardware->disableMsgType(CAMERA_MSG_COMPRESSED_IMAGE);
+    }
 }
 
 void CameraService::Client::notifyCallback(int32_t msgType, int32_t ext1, int32_t ext2, void* user)
