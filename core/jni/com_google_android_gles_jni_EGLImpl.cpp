@@ -355,6 +355,13 @@ static jboolean jni_eglGetConfigAttrib(JNIEnv *_env, jobject _this, jobject disp
     jint localValue;
     success = eglGetConfigAttrib(dpy, cnf, attribute, &localValue);
     if (success) {
+         /* Note: the driver supports OpenGLES 2.0, however Eclair officially only supports
+          * OpenGLES 1.1. For this reason, we must disable the EGL_OPENGL_ES2_BIT flag that is
+          * set by the driver.
+          */
+         if(localValue == (EGL_OPENGL_ES2_BIT|EGL_OPENVG_BIT|EGL_OPENGL_ES_BIT))
+             localValue = EGL_OPENVG_BIT|EGL_OPENGL_ES_BIT;
+
         _env->SetIntArrayRegion(value, 0, 1, &localValue);
     }
     return success;
