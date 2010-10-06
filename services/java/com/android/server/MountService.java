@@ -643,21 +643,10 @@ class MountService extends IMountService.Stub
     }
 
     private boolean doGetShareMethodAvailable(String method) {
-        ArrayList<String> rsp;
-        try {
-            rsp = mConnector.doCommand("share status " + method);
-        } catch (NativeDaemonConnectorException ex) {
-            Slog.e(TAG, "Failed to determine whether share method " + method + " is available.");
-            return false;
-        }
+        ArrayList<String> rsp = mConnector.doCommand("share status " + method);
 
         for (String line : rsp) {
-            String[] tok = line.split(" ");
-            if (tok.length < 3) {
-                Slog.e(TAG, "Malformed response to share status " + method);
-                return false;
-            }
-
+            String []tok = line.split(" ");
             int code;
             try {
                 code = Integer.parseInt(tok[0]);
@@ -782,22 +771,10 @@ class MountService extends IMountService.Stub
 
     private boolean doGetVolumeShared(String path, String method) {
         String cmd = String.format("volume shared %s %s", path, method);
-        ArrayList<String> rsp;
-
-        try {
-            rsp = mConnector.doCommand(cmd);
-        } catch (NativeDaemonConnectorException ex) {
-            Slog.e(TAG, "Failed to read response to volume shared " + path + " " + method);
-            return false;
-        }
+        ArrayList<String> rsp = mConnector.doCommand(cmd);
 
         for (String line : rsp) {
-            String[] tok = line.split(" ");
-            if (tok.length < 3) {
-                Slog.e(TAG, "Malformed response to volume shared " + path + " " + method + " command");
-                return false;
-            }
-
+            String []tok = line.split(" ");
             int code;
             try {
                 code = Integer.parseInt(tok[0]);
@@ -806,7 +783,9 @@ class MountService extends IMountService.Stub
                 return false;
             }
             if (code == VoldResponseCode.ShareEnabledResult) {
-                return "enabled".equals(tok[2]);
+                if (tok[2].equals("enabled"))
+                    return true;
+                return false;
             } else {
                 Slog.e(TAG, String.format("Unexpected response code %d", code));
                 return false;
