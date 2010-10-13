@@ -489,8 +489,14 @@ public class StatusBarPolicy {
                 null, com.android.internal.R.drawable.stat_sys_gps_acquiring_anim, 0, 0);
         mGpsFixIconData = IconData.makeIcon("gps",
                 null, com.android.internal.R.drawable.stat_sys_gps_on, 0, 0);
-        mGpsIcon = service.addIcon(mGpsEnabledIconData, null);
-        service.setIconVisibility(mGpsIcon, false);
+        ContentResolver resolver = mContext.getContentResolver();
+        String allowedProviders = Settings.Secure.getString(resolver,
+                Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
+        if((allowedProviders.equalsIgnoreCase("gps")) || (allowedProviders.equalsIgnoreCase("network")))
+        {
+            mGpsIcon = service.addIcon(mGpsEnabledIconData, null);
+            service.setIconVisibility(mGpsIcon, false);
+        }
 
         // Alarm clock
         mAlarmClockIconData = IconData.makeIcon(
@@ -1321,12 +1327,22 @@ public class StatusBarPolicy {
 
         if (action.equals(GpsLocationProvider.GPS_FIX_CHANGE_ACTION) && enabled) {
             // GPS is getting fixes
+            if (mGpsIcon == null) {
+                mGpsIcon = mService.addIcon(mGpsEnabledIconData, null);
+            }
+
             mService.updateIcon(mGpsIcon, mGpsFixIconData, null);
             mService.setIconVisibility(mGpsIcon, true);
         } else if (action.equals(GpsLocationProvider.GPS_ENABLED_CHANGE_ACTION) && !enabled) {
             // GPS is off
             mService.setIconVisibility(mGpsIcon, false);
+            mService.removeIcon(mGpsIcon);
+            mGpsIcon = null;
         } else {
+            if (mGpsIcon == null) {
+                mGpsIcon = mService.addIcon(mGpsEnabledIconData, null);
+            }
+
             // GPS is on, but not receiving fixes
             mService.updateIcon(mGpsIcon, mGpsEnabledIconData, null);
             mService.setIconVisibility(mGpsIcon, true);
