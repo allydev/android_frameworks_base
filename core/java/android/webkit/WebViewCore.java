@@ -139,6 +139,9 @@ final class WebViewCore {
         // subwindow creation.
         mContext = context;
 
+        if (DebugFlags.WEB_VIEW_CORE)
+            Log.v(LOGTAG, "Creating WebViewCore instance");
+
         // We need to wait for the initial thread creation before sending
         // a message to the WebCore thread.
         // XXX: This is the only time the UI thread will wait for the WebCore
@@ -179,6 +182,8 @@ final class WebViewCore {
     /* Initialize private data within the WebCore thread.
      */
     private void initialize() {
+        if (DebugFlags.WEB_VIEW_CORE)
+             Log.v(LOGTAG, " Initializing WebViewCore");
         /* Initialize our private BrowserFrame class to handle all
          * frame-related functions. We need to create a new view which
          * in turn creates a C level FrameView and attaches it to the frame.
@@ -207,6 +212,8 @@ final class WebViewCore {
                     WebView.WEBCORE_INITIALIZED_MSG_ID,
                     mNativeClass, 0).sendToTarget();
         }
+        if (DebugFlags.WEB_VIEW_CORE)
+            Log.v(LOGTAG,"WebViewCore Init complete");
 
     }
 
@@ -951,7 +958,10 @@ final class WebViewCore {
                             break;
 
                         case LOAD_URL: {
-                            DnsResolver.getInstance().pauseDnsResolverThreadPool();
+                            /* At this stage, DNS resolver should have been created. Check is safeguard
+                               against someone calling DNS resolver without creating DNS resolver */
+                            if(DnsResolver.getInstance() != null)
+                                DnsResolver.getInstance().pauseDnsResolverThreadPool();
                             GetUrlData param = (GetUrlData) msg.obj;
                             loadUrl(param.mUrl, param.mExtraHeaders);
                             break;
@@ -1008,7 +1018,10 @@ final class WebViewCore {
                             break;
 
                         case RELOAD:
-                            DnsResolver.getInstance().pauseDnsResolverThreadPool();
+                            /* At this stage, DNS resolver should have been created. Check is safeguard
+                               against someone calling DNS resolver without creating DNS resolver */
+                            if(DnsResolver.getInstance() != null)
+                                DnsResolver.getInstance().pauseDnsResolverThreadPool();
                             mBrowserFrame.reload(false);
                             break;
 
@@ -1052,7 +1065,10 @@ final class WebViewCore {
                             if (!mBrowserFrame.committed() && msg.arg1 == -1 &&
                                     (mBrowserFrame.loadType() ==
                                     BrowserFrame.FRAME_LOADTYPE_STANDARD)) {
-                                DnsResolver.getInstance().pauseDnsResolverThreadPool();
+                                /* At this stage, DNS resolver should have been created. Check is safeguard
+                                   against someone calling DNS resolver without creating DNS resolver */
+                                if(DnsResolver.getInstance() != null)
+                                    DnsResolver.getInstance().pauseDnsResolverThreadPool();
                                 mBrowserFrame.reload(true);
                             } else {
                                 mBrowserFrame.goBackOrForward(msg.arg1);
@@ -1540,6 +1556,8 @@ final class WebViewCore {
         // We don't want anyone to post a message between removing pending
         // messages and sending the destroy message.
         synchronized (mEventHub) {
+             if (DebugFlags.WEB_VIEW_CORE)
+                 Log.v(LOGTAG, "Destroying WebViewCore");
             // RESUME_TIMERS and PAUSE_TIMERS are per process base. They need to
             // be preserved even the WebView is destroyed.
             // Note: we should not have more than one RESUME_TIMERS/PAUSE_TIMERS
@@ -1558,7 +1576,13 @@ final class WebViewCore {
             }
             mEventHub.blockMessages();
         }
-        DnsResolver.getInstance().destroyDnsResolver();
+        /* At this stage, DNS resolver should have been created. Check is safeguard
+           against someone calling destroy without creating DNS resolver */
+        if(DnsResolver.getInstance() != null)
+            DnsResolver.getInstance().destroyDnsResolver();
+
+        if (DebugFlags.WEB_VIEW_CORE)
+            Log.v(LOGTAG, "Destroyed WebViewCore");
     }
 
     //-------------------------------------------------------------------------
