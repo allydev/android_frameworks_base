@@ -715,7 +715,7 @@ class PackageManagerService extends IPackageManager.Stub {
 
         mContext = context;
         mFactoryTest = factoryTest;
-        mNoDexOpt = "eng".equals(SystemProperties.get("ro.build.type"));
+        mNoDexOpt = false;
         mMetrics = new DisplayMetrics();
         mSettings = new Settings();
         mSettings.addSharedUserLP("android.uid.system",
@@ -3098,7 +3098,7 @@ class PackageManagerService extends IPackageManager.Stub {
         
         long scanFileTime = scanFile.lastModified();
         final boolean forceDex = (scanMode&SCAN_FORCE_DEX) != 0;
-        final boolean scanFileNewer = forceDex || scanFileTime != pkgSetting.getTimeStamp();
+        final boolean scanFileNewer = forceDex || (scanFileTime >= pkgSetting.getTimeStamp());
         pkg.applicationInfo.processName = fixProcessName(
                 pkg.applicationInfo.packageName,
                 pkg.applicationInfo.processName,
@@ -3510,7 +3510,7 @@ class PackageManagerService extends IPackageManager.Stub {
                 }
             }
 
-            pkgSetting.setTimeStamp(scanFileTime);
+            pkgSetting.setTimeStamp(scanFileTime + 1);
         }
 
         return pkg;
