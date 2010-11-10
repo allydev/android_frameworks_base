@@ -1668,6 +1668,10 @@ void OMXCodec::onCmdComplete(OMX_COMMANDTYPE cmd, OMX_U32 data) {
             CHECK_EQ(countBuffersWeOwn(mPortBuffers[portIndex]),
                      mPortBuffers[portIndex].size());
 
+            if(mState == ERROR) {
+              CODEC_LOGE("Ignoring OMX_CommandFlush in ERROR state");
+              break;
+            }
             if (mState == RECONFIGURING) {
                 CHECK_EQ(portIndex, kPortIndexOutput);
 
@@ -2538,7 +2542,7 @@ status_t OMXCodec::read(
             onCmdComplete(OMX_CommandFlush, kPortIndexOutput);
         }
 
-        while (mSeekTimeUs >= 0) {
+        while (mState != ERROR && mSeekTimeUs >= 0) {
             mBufferFilled.wait(mLock);
         }
     }
