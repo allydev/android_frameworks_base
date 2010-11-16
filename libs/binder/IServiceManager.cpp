@@ -177,6 +177,18 @@ public:
         }
         return res;
     }
+
+    virtual int getServicePid(const String16& name) const
+    {
+        unsigned pid;
+        Parcel data,reply;
+        data.writeInterfaceToken(IServiceManager::getInterfaceDescriptor());
+        data.writeString16(name);
+        status_t err = remote()->transact(GET_SERVICE_PID_TRANSACTION, data, &reply);
+        if (err != NO_ERROR)
+           LOGE("Binder transaction for GET_SERVICE_PID_TRANSACTION failed\n");
+        return err == NO_ERROR ? reply.readInt32() : 0;
+    }
 };
 
 IMPLEMENT_META_INTERFACE(ServiceManager, "android.os.IServiceManager");
@@ -218,6 +230,13 @@ status_t BnServiceManager::onTransact(
             for (size_t i=0; i<N; i++) {
                 reply->writeString16(list[i]);
             }
+            return NO_ERROR;
+        } break;
+        case GET_SERVICE_PID_TRANSACTION: {
+            CHECK_INTERFACE(IServiceManager, data, reply);
+            String16 which = data.readString16();
+            int pid = const_cast<BnServiceManager*>(this)->getServicePid(which);
+            reply->writeInt32(pid);
             return NO_ERROR;
         } break;
         default:

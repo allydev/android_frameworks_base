@@ -90,6 +90,14 @@ public abstract class ServiceManagerNative extends Binder implements IServiceMan
                 setPermissionController(controller);
                 return true;
             }
+
+            case IServiceManager.GET_SERVICE_PID_TRANSACTION: {
+                data.enforceInterface(IServiceManager.descriptor);
+                String name = data.readString();
+                int pid = getServicePid(name);
+                reply.writeInt(pid);
+                return true;
+            }
             }
         } catch (RemoteException e) {
         }
@@ -168,6 +176,18 @@ class ServiceManagerProxy implements IServiceManager {
         mRemote.transact(SET_PERMISSION_CONTROLLER_TRANSACTION, data, reply, 0);
         reply.recycle();
         data.recycle();
+    }
+
+    public int getServicePid(String name) throws RemoteException {
+        Parcel data = Parcel.obtain();
+        Parcel reply = Parcel.obtain();
+        data.writeInterfaceToken(IServiceManager.descriptor);
+        data.writeString(name);
+        mRemote.transact(GET_SERVICE_PID_TRANSACTION, data, reply, 0);
+        int pid = reply.readInt();
+        reply.recycle();
+        data.recycle();
+        return pid;
     }
 
     private IBinder mRemote;

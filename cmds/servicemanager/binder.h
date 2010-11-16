@@ -61,6 +61,9 @@ enum {
     SVC_MGR_CHECK_SERVICE,
     SVC_MGR_ADD_SERVICE,
     SVC_MGR_LIST_SERVICES,
+    SVC_MGR_CHECK_SERVICES,
+    SVC_MGR_SET_PERMISSION_CONTROLLER,
+    SVC_MGR_GET_SERVICE_PID,
 };
 
 typedef int (*binder_handler)(struct binder_state *bs,

@@ -862,6 +862,20 @@ public class Watchdog extends Thread {
 
             mActivity.addErrorToDropBox("watchdog", null, null, null, name, null, stack, null);
 
+            // Generate tombstone file for system server
+            if (!Debug.isDebuggerConnected()) {
+                // Generate tombstone of mediaserver
+                // Mediaserver hosts media.audio_flinger
+                int pid = ServiceManager.getServicePid("media.audio_flinger");
+
+                if( pid > 0) {
+                    Process.sendSignal(pid, 6);
+                    SystemClock.sleep(2000);
+                    Process.sendSignal(pid, 6);
+                    SystemClock.sleep(2000);
+                }
+            }
+
             // Only kill the process if the debugger is not attached.
             if (!Debug.isDebuggerConnected()) {
                 Slog.w(TAG, "*** WATCHDOG KILLING SYSTEM PROCESS: " + name);

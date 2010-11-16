@@ -105,6 +105,15 @@ public final class ServiceManager {
         }
     }
 
+    public static int getServicePid(String name) {
+        try {
+            return getIServiceManager().getServicePid(name);
+        } catch (RemoteException e) {
+            Log.e(TAG, "error in getServicePid", e);
+            return 0;
+        }
+    }
+
     /**
      * This is only intended to be called when the process is first being brought
      * up and bound by the activity manager. There is only one thread in the process

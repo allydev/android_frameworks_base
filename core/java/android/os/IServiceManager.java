@@ -58,6 +58,11 @@ public interface IServiceManager extends IInterface
      */
     public void setPermissionController(IPermissionController controller)
             throws RemoteException;
+
+    /**
+     * Retrieve the pid of the process hosting an existing service
+     */
+    public int getServicePid(String name) throws RemoteException;
     
     static final String descriptor = "android.os.IServiceManager";
 
@@ -67,4 +72,5 @@ public interface IServiceManager extends IInterface
     int LIST_SERVICES_TRANSACTION = IBinder.FIRST_CALL_TRANSACTION+3;
     int CHECK_SERVICES_TRANSACTION = IBinder.FIRST_CALL_TRANSACTION+4;
     int SET_PERMISSION_CONTROLLER_TRANSACTION = IBinder.FIRST_CALL_TRANSACTION+5;
+    int GET_SERVICE_PID_TRANSACTION = IBinder.FIRST_CALL_TRANSACTION+6;
 }
