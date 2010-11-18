@@ -1629,6 +1629,10 @@ void OMXCodec::onCmdComplete(OMX_COMMANDTYPE cmd, OMX_U32 data) {
             OMX_U32 portIndex = data;
             CODEC_LOGV("PORT_ENABLED(%ld)", portIndex);
 
+            if(ERROR == mState) {
+              CODEC_LOGE("Ignoring port Enable since component is in ERROR state");
+              break;
+            }
             CHECK(mState == EXECUTING || mState == RECONFIGURING);
             CHECK_EQ(mPortStatus[portIndex], ENABLING);
 
