@@ -230,6 +230,7 @@ public class GpsLocationProvider implements LocationProviderInterface {
     private int mSuplServerPort;
     private String mC2KServerHost;
     private int mC2KServerPort;
+    private boolean mAGPSWakeLockEnable;
 
     private final Context mContext;
     private final ILocationManager mLocationManager;
@@ -254,6 +255,10 @@ public class GpsLocationProvider implements LocationProviderInterface {
     // Wakelocks
     private final static String WAKELOCK_KEY = "GpsLocationProvider";
     private final PowerManager.WakeLock mWakeLock;
+
+    private final static String WAKELOCK_AGPS_KEY = "GpsLocationProvider_AGPS";
+    private final long WAKELOCK_AGPS_TIMEOUT_MSEC = 30000;
+    private final PowerManager.WakeLock mWakeLock_AGPS;
 
     // Alarms
     private final static String ALARM_WAKEUP = "com.android.internal.location.ALARM_WAKEUP";
@@ -356,6 +361,9 @@ public class GpsLocationProvider implements LocationProviderInterface {
         PowerManager powerManager = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKELOCK_KEY);
 
+        mWakeLock_AGPS = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKELOCK_AGPS_KEY);
+        mWakeLock_AGPS.setReferenceCounted (true);
+
         mAlarmManager = (AlarmManager)mContext.getSystemService(Context.ALARM_SERVICE);
         mWakeupIntent = PendingIntent.getBroadcast(mContext, 0, new Intent(ALARM_WAKEUP), 0);
         mTimeoutIntent = PendingIntent.getBroadcast(mContext, 0, new Intent(ALARM_TIMEOUT), 0);
@@ -391,6 +399,21 @@ public class GpsLocationProvider implements LocationProviderInterface {
                 } catch (NumberFormatException e) {
                     Log.e(TAG, "unable to parse C2K_PORT: " + portString);
                 }
+            }
+
+            String strAGPSWakeLockEnable = mProperties.getProperty("AGPS_WAKELOCK");
+            if(strAGPSWakeLockEnable != null)
+            {
+                try {
+                    mAGPSWakeLockEnable = Boolean.parseBoolean(strAGPSWakeLockEnable);
+                } catch (NumberFormatException e) {
+                    Log.e(TAG, "unable to parse AGPS_WAKELOCK: " + strAGPSWakeLockEnable);
+                }
+            }
+            else
+            {
+                Log.i(TAG, "AGPS_WAKELOCK not set, default to disable");
+                mAGPSWakeLockEnable = false;
             }
         } catch (IOException e) {
             Log.w(TAG, "Could not open GPS configuration file " + PROPERTIES_FILE);
@@ -1179,6 +1202,12 @@ public class GpsLocationProvider implements LocationProviderInterface {
     private void reportAGpsStatus(int type, int status) {
         switch (status) {
             case GPS_REQUEST_AGPS_DATA_CONN:
+
+                if(mAGPSWakeLockEnable)
+                {
+                    mWakeLock_AGPS.acquire ();
+                }
+
                  int result = mConnMgr.startUsingNetworkFeature(
                         ConnectivityManager.TYPE_MOBILE, Phone.FEATURE_ENABLE_SUPL);
                 if (result == Phone.APN_ALREADY_ACTIVE) {
@@ -1191,8 +1220,23 @@ public class GpsLocationProvider implements LocationProviderInterface {
                     }
                 } else if (result == Phone.APN_REQUEST_STARTED) {
                     mAGpsDataConnectionState = AGPS_DATA_CONNECTION_OPENING;
+
+                    if(mAGPSWakeLockEnable)
+                    {
+                        // in this case, we let the timer in power manager to release the wake lock
+                        // since the wake lock is reference counted, this just bumps the reference counter by 1
+                        // this is sub-optimal, but safe and simple
+                        mWakeLock_AGPS.acquire (WAKELOCK_AGPS_TIMEOUT_MSEC);
+                    }
                 } else {
                     native_agps_data_conn_failed();
+                }
+
+                if(mAGPSWakeLockEnable)
+                {
+                    // note the wake lock reference counter could still be more than 0
+                    // and we rely on timer to release it automatically
+                    mWakeLock_AGPS.release ();
                 }
                 break;
             case GPS_RELEASE_AGPS_DATA_CONN:
