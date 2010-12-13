@@ -54,11 +54,19 @@ public:
      */
     virtual Vector<String16>    listServices() = 0;
 
+    /**
+     * Retrieve the pid of the process hosting an existing service, blocking.
+     */
+    virtual int                  getServicePid( const String16& name) const = 0;
+
     enum {
         GET_SERVICE_TRANSACTION = IBinder::FIRST_CALL_TRANSACTION,
         CHECK_SERVICE_TRANSACTION,
         ADD_SERVICE_TRANSACTION,
         LIST_SERVICES_TRANSACTION,
+        CHECK_SERVICES_TRANSACTION,
+        SET_PERMISSION_CONTROLLER_TRANSACTION,
+        GET_SERVICE_PID_TRANSACTION,
     };
 };
 
