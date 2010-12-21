@@ -752,7 +752,10 @@ int EventHub::openDevice(const char *deviceName) {
             if (test_bit(i, sw_bitmask)) {
                 hasSwitches = true;
                 if (mSwitches[i] == 0) {
-                    mSwitches[i] = device->id;
+                 //GNM added
+		if(!device->classes)
+		device->classes = INPUT_DEVICE_CLASS_KEYBOARD;
+		   mSwitches[i] = device->id;
                 }
             }
         }
