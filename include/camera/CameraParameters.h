@@ -25,6 +25,13 @@ namespace android {
 class CameraParameters
 {
 public:
+    
+enum {
+        CAMERA_ORIENTATION_UNKNOWN = 0,
+        CAMERA_ORIENTATION_PORTRAIT = 1,
+        CAMERA_ORIENTATION_LANDSCAPE = 2,
+    };
+
     CameraParameters();
     CameraParameters(const String8 &params) { unflatten(params); }
     ~CameraParameters();
@@ -58,11 +65,6 @@ public:
     void setTouchIndexAf(int x, int y);
     void getTouchIndexAf(int *x, int *y) const;
 
-    enum {
-        CAMERA_ORIENTATION_UNKNOWN = 0,
-        CAMERA_ORIENTATION_PORTRAIT = 1,
-        CAMERA_ORIENTATION_LANDSCAPE = 2,
-    };
     int getOrientation() const;
     void setOrientation(int orientation);
 

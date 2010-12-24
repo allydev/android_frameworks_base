@@ -594,7 +594,7 @@ void AwesomePlayer::initRenderer_l() {
         CHECK(meta->findCString(kKeyDecoderComponent, &component));
         CHECK(meta->findInt32(kKeyWidth, &decodedWidth));
         CHECK(meta->findInt32(kKeyHeight, &decodedHeight));
-        CHECK(meta->findInt32(kKeyRotation, &rotation ));
+//        CHECK(meta->findInt32(kKeyRotation, &rotation ));
 
         //temporarily setting flags to 0.
         //GPU composition flag will come in

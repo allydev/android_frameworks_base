@@ -21,9 +21,14 @@ LOCAL_SHARED_LIBRARIES := \
     libmedia \
     libskia \
     libui \
-    libcutils \
-    libsurfaceflinger_client \
-    libcamera_client
+    libcutils 
+
+ifneq ($(BOARD_USES_ECLAIR_LIBCAMERA),true)
+	LOCAL_SHARED_LIBRARIES += \
+		libcamera_client \
+		libsurfaceflinger_client
+endif
+    
 
 ifneq ($(BUILD_WITHOUT_PV),true)
 

@@ -59,9 +59,14 @@ LOCAL_SHARED_LIBRARIES := \
         libcutils         \
         libui             \
         libsonivox        \
-        libvorbisidec     \
-        libsurfaceflinger_client \
-        libcamera_client
+        libvorbisidec     
+        
+ifneq ($(BOARD_USES_ECLAIR_LIBCAMERA),true)
+	LOCAL_SHARED_LIBRARIES += \
+		libcamera_client \
+		libsurfaceflinger_client
+endif
+
 
 LOCAL_STATIC_LIBRARIES := \
         libstagefright_aacdec \

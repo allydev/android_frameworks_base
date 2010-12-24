@@ -29,7 +29,14 @@ LOCAL_SRC_FILES:= \
     MediaProfiles.cpp
 
 LOCAL_SHARED_LIBRARIES := \
-	libui libcutils libutils libbinder libsonivox libicuuc libexpat libsurfaceflinger_client libcamera_client
+	libui libcutils libutils libbinder libsonivox libicuuc libexpat 
+
+ifneq ($(BOARD_USES_ECLAIR_LIBCAMERA),true)
+	LOCAL_SHARED_LIBRARIES += \
+		libcamera_client \
+		libsurfaceflinger_client
+endif
+
 
 LOCAL_MODULE:= libmedia
 
