@@ -761,8 +761,10 @@ int EventHub::open_device(const char *deviceName)
             //LOGI("Device 0x%x sw %d: has=%d", device->id, i, test_bit(i, sw_bitmask));
             if (test_bit(i, sw_bitmask)) {
                 if (mSwitches[i] == 0) {
-                    if(!device->classes)
-			device->classes = CLASS_KEYBOARD;
+#ifdef LG_SLIDE_KB_HACK                  
+		if(!device->classes)
+		device->classes = CLASS_KEYBOARD;
+#endif
 		    mSwitches[i] = device->id;
                 }
             }
