@@ -963,7 +963,7 @@ class PackageManagerService extends IPackageManager.Stub {
             mAppInstallObserver = new AppDirObserver(
                 mAppInstallDir.getPath(), OBSERVER_EVENTS, false);
             mAppInstallObserver.startWatching();
-            scanDirLI(mAppInstallDir, 0, scanMode);
+            scanDirLI(mAppInstallDir, 0, scanMode & ~SCAN_NO_DEX);
 
             mDrmAppInstallObserver = new AppDirObserver(
                 mDrmAppPrivateInstallDir.getPath(), OBSERVER_EVENTS, false);
@@ -3209,7 +3209,7 @@ class PackageManagerService extends IPackageManager.Stub {
         // optimization, if this is not a system app.
         if (mInstaller != null) {
             String path = scanFile.getPath();
-            if (scanFileNewer) {
+            try {
                 // Note: We don't want to unpack the native binaries for
                 //       system applications, unless they have been updated
                 //       (the binaries are already under /system/lib).
@@ -3218,8 +3218,9 @@ class PackageManagerService extends IPackageManager.Stub {
                 //       only for non-system apps and system app upgrades.
                 //
                 int flags = pkg.applicationInfo.flags;
-                if ((flags & ApplicationInfo.FLAG_SYSTEM) == 0 ||
-                    (flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0) {
+                if (((flags & ApplicationInfo.FLAG_SYSTEM) == 0 ||
+                     (flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0) &&
+                    (scanFileNewer || dalvik.system.DexFile.isDexOptNeeded(path))) {
                     Log.i(TAG, path + " changed; unpacking");
                     int err = cachePackageSharedLibsLI(pkg, scanFile);
                     if (err != PackageManager.INSTALL_SUCCEEDED) {
@@ -3227,6 +3228,10 @@ class PackageManagerService extends IPackageManager.Stub {
                         return null;
                     }
                 }
+            } catch (FileNotFoundException e) {
+                Slog.w(TAG, "Exception in scanPackageLI() file " + path + " not found");
+            } catch (IOException e) {
+                Slog.w(TAG, "Exception in scanPackageLI() while reading file " + path);
             }
             pkg.mScanPath = path;
 

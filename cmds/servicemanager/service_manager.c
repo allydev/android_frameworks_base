@@ -91,6 +91,7 @@ struct svcinfo
     void *ptr;
     struct binder_death death;
     unsigned len;
+    uint32_t pid;
     uint16_t name[0];
 };
 
@@ -140,7 +141,8 @@ void *do_find_service(struct binder_state *bs, uint16_t *s, unsigned len)
 
 int do_add_service(struct binder_state *bs,
                    uint16_t *s, unsigned len,
-                   void *ptr, unsigned uid)
+                   void *ptr, unsigned uid,
+                   unsigned pid)
 {
     struct svcinfo *si;
 //    LOGI("add_service('%s',%p) uid=%d\n", str8(s), ptr, uid);
@@ -162,6 +164,7 @@ int do_add_service(struct binder_state *bs,
             return -1;
         }
         si->ptr = ptr;
+        si->pid = pid;
     } else {
         si = malloc(sizeof(*si) + (len + 1) * sizeof(uint16_t));
         if (!si) {
@@ -171,6 +174,7 @@ int do_add_service(struct binder_state *bs,
         }
         si->ptr = ptr;
         si->len = len;
+        si->pid = pid;
         memcpy(si->name, s, (len + 1) * sizeof(uint16_t));
         si->name[len] = '\0';
         si->death.func = svcinfo_death;
@@ -221,7 +225,7 @@ int svcmgr_handler(struct binder_state *bs,
     case SVC_MGR_ADD_SERVICE:
         s = bio_get_string16(msg, &len);
         ptr = bio_get_ref(msg);
-        if (do_add_service(bs, s, len, ptr, txn->sender_euid))
+        if (do_add_service(bs, s, len, ptr, txn->sender_euid, txn->sender_pid))
             return -1;
         break;
 
@@ -236,6 +240,15 @@ int svcmgr_handler(struct binder_state *bs,
             return 0;
         }
         return -1;
+    }
+    case SVC_MGR_GET_SERVICE_PID: {
+        s = bio_get_string16(msg, &len);
+        si = find_svc(s,len);
+        if (si && si->ptr)
+            bio_put_uint32(reply, si->pid);
+        else
+            bio_put_uint32(reply, 0);
+        return 0;
     }
     default:
         LOGE("unknown code %d\n", txn->code);

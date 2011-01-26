@@ -311,7 +311,7 @@ public class MobileDataStateTracker extends NetworkStateTracker {
             networkTypeStr = "evdo";
             break;
         case TelephonyManager.NETWORK_TYPE_EVDO_B:
-            networkTypeStr = "evdo";
+            networkTypeStr = "evdo_b";
             break;
         }
         return "net.tcp.buffersize." + networkTypeStr;

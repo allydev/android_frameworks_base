@@ -488,9 +488,10 @@ void LayerBuffer::BufferSource::onDraw(const Region& clip) const
                 // NOTE: Assume the buffer is allocated with the proper USAGE flags
 
                 sp<GraphicBuffer> buffer = new  GraphicBuffer(
-                        src.img.w, src.img.h, src.img.format,
+                        src.crop.r, src.crop.b, src.img.format,
                         GraphicBuffer::USAGE_HW_TEXTURE,
                         src.img.w, src.img.handle, false);
+                buffer->setVerticalStride(src.img.h);
 
                 err = mLayer.initializeEglImage(buffer, &mTexture);
                 if (err != NO_ERROR) {
